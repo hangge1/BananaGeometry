@@ -5,6 +5,7 @@ if(NOT WIN32)
 endif()
 include(CTest)
 include(FetchContent)
+option(DRAWER_BUILD_BENCHMARKS "Build developer performance measurements" OFF)
 FetchContent_Declare(imgui_source
     URL https://codeload.github.com/ocornut/imgui/tar.gz/refs/tags/v1.91.9b
     URL_HASH SHA256=8E1BBC76C71D74FEF2FB85DB7E7CA8EBA13D6A86623C54992B60162DB554FFDB
@@ -85,6 +86,9 @@ if(BUILD_TESTING)
     catch_discover_tests(drawer_tests TEST_PREFIX "unit::" PROPERTIES LABELS "unit" TIMEOUT 60)
     add_test(NAME window_smoke COMMAND drawer --smoke-test)
     set_tests_properties(window_smoke PROPERTIES TIMEOUT 30 LABELS "integration")
+endif()
+if(DRAWER_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()
 install(TARGETS drawer RUNTIME DESTINATION .)
 install(DIRECTORY sdk cases docs templates DESTINATION .)
