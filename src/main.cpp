@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "app/application.h"
+#include "app/workspace_paths.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -140,6 +141,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     bool smoke = false;
     std::filesystem::path screenshot;
     std::filesystem::path fixture;
+    std::filesystem::path workspace;
     std::string case_id = "drawer.gallery";
     for (int i = 1; i < argc; ++i) {
       if (std::wstring(argv[i]) == L"--smoke-test") smoke = true;
@@ -151,6 +153,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         fixture = argv[++i];
       if (std::wstring(argv[i]) == L"--error-log" && i + 1 < argc)
         error_log = argv[++i];
+      if (std::wstring(argv[i]) == L"--workspace") {
+        if (i + 1 >= argc)
+          throw std::runtime_error("--workspace requires a directory");
+        workspace = argv[++i];
+      }
     }
     LocalFree(argv);
     if (!smoke && !fixture.empty())
@@ -223,7 +230,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
       throw std::runtime_error("ImGui backend initialization failed");
     wchar_t executable[32768]{};
     GetModuleFileNameW(nullptr, executable, 32768);
-    drawer::Application app(std::filesystem::path(executable).parent_path());
+    drawer::Application app(drawer::ResolveWorkspaceRoot(
+        std::filesystem::path(executable).parent_path(), workspace));
     g_application = &app;
     if (smoke && !app.SmokeCheck(case_id, fixture))
       throw std::runtime_error("Case smoke check failed");

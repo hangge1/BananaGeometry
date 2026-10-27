@@ -32,6 +32,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/check-porta
 
 构建入口 `build.ps1` 也使用相同产物布局。单独性能入口为 `tools/run-benchmarks.ps1`；单独截图入口可用 `-Scene polygon-selection` 选择一个场景，以及 `-Executable` 指定已构建的程序。
 
+原生程序在源码仓库内默认使用根目录脚本。验证发布副本自身的资源时，可用 `capture-screenshots.ps1 -Executable out/Drawer/drawer.exe -Workspace out/Drawer`，工作区路径会记录到命令证据中。
+
 ## 路径与命名
 
 ```text

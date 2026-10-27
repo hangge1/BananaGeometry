@@ -13,32 +13,36 @@ namespace drawer {
 // deferred until the save/discard/cancel dialog has resolved.
 class Application {
  public:
-  explicit Application(std::filesystem::path root);
-  void Frame();
-  void RequestExit();
-  bool ShouldExit() const { return exit_; }
-  bool SmokeCheck(const std::string& case_id = "drawer.gallery",
-                  const std::filesystem::path& fixture = {});
-
- private:
   struct CaseInfo {
     std::filesystem::path entry;
     std::string id;
     std::string name;
   };
+  explicit Application(std::filesystem::path root);
+  void Frame();
+  void RequestExit();
+  bool ShouldExit() const { return exit_; }
+  // Rescans metadata without replacing open sessions or their document data.
+  void RefreshCases();
+  const std::vector<CaseInfo>& Cases() const { return cases_; }
+  const std::string& Error() const { return error_; }
+  // Borrowed until the tab closes or successfully reloads.
+  Session* Active();
+  bool SmokeCheck(const std::string& case_id = "drawer.gallery",
+                  const std::filesystem::path& fixture = {});
+
+ private:
   struct Tab {
     int key;
     std::unique_ptr<Session> session;
   };
   enum class Action { kNone, kClose, kReload, kExit };
-  void Scan();
   void New(const std::filesystem::path& entry);
   void Open();
   bool Save(Session* session, bool save_as = false);
   void Request(Action action, int key);
   void Complete();
   void Confirm();
-  Session* Active();
   void Controls(Session* session);
   std::filesystem::path root_;
   std::vector<CaseInfo> cases_;

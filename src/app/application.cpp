@@ -11,14 +11,18 @@
 
 namespace drawer {
 Application::Application(std::filesystem::path root) : root_(std::move(root)) {
-  Scan();
+  if (!std::filesystem::is_regular_file(root_ / "sdk/drawer.lua") ||
+      !std::filesystem::is_directory(root_ / "cases"))
+    throw std::runtime_error("Workspace requires sdk/drawer.lua and cases/: " +
+                             root_.u8string());
+  RefreshCases();
   for (const auto& item : cases_)
     if (item.id == "drawer.triangle") {
       New(item.entry);
       break;
     }
 }
-void Application::Scan() {
+void Application::RefreshCases() {
   cases_.clear();
   error_.clear();
   std::set<std::string> ids;
@@ -116,8 +120,17 @@ void Application::Complete() {
       if (candidate->Id() != found->session->Id())
         throw std::runtime_error(
             "Case ID changed; open it as a new case instead");
+      auto metadata = std::find_if(
+          cases_.begin(), cases_.end(),
+          [&](const auto& item) { return item.id == candidate->Id(); });
+      if (metadata != cases_.end())
+        metadata->name = candidate->Name();
+      else
+        cases_.push_back(
+            {candidate->Entry(), candidate->Id(), candidate->Name()});
       found->session = std::move(candidate);
-      notice_ = "重新加载成功：当前实例已重置。";
+      error_.clear();
+      notice_ = "脚本修改已应用：当前画布及撤销历史已重置，其他画布不变。";
     } catch (const std::exception& e) {
       error_ = "重载失败，原实例已保留：\n" + std::string(e.what());
     }
@@ -181,7 +194,8 @@ void Application::Controls(Session* session) {
       "空格+"
       "左键：平移\n滚轮：以鼠标为中心缩放\nHome：适应内容\nEsc：取消当前操作\nD"
       "elete：删除选中对"
-      "象\nCtrl+N/O/S/Z/Y：新建/加载/保存/撤销/重做\nF5：重新加载当前用例");
+      "象\nCtrl+N/O/S/Z/Y：新建/加载/保存/撤销/"
+      "重做\nF5：应用脚本修改并重置当前画布");
 }
 void Application::Frame() {
   auto* viewport = ImGui::GetMainViewport();
@@ -215,10 +229,22 @@ void Application::Frame() {
   if (ImGui::Button("重做")) session->Redo();
   ImGui::EndDisabled();
   ImGui::SameLine();
-  if (ImGui::Button("重载 F5")) Request(Action::kReload, active_);
+  if (ImGui::Button("应用脚本修改 F5")) Request(Action::kReload, active_);
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip(
+        "重新读取当前用例的 Lua 脚本及模块，重置当前画布和撤销历史。\n"
+        "未保存时先确认；加载失败保留原实例，其他画布不变。");
   ImGui::EndDisabled();
   ImGui::SameLine();
-  if (ImGui::Button("刷新用例")) Scan();
+  if (ImGui::Button("更新用例列表")) {
+    RefreshCases();
+    notice_ = "左侧用例列表已更新，已打开的画布保持原样；应用脚本修改请按 F5。";
+  }
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip(
+        "重新扫描用例目录，更新左侧名称和新增/移除项。\n"
+        "已打开的画布继续运行；修改当前用例的脚本后，请点击“应用脚本修改 "
+        "F5”。");
   auto& io = ImGui::GetIO();
   if (!io.WantTextInput && pending_ == Action::kNone) {
     if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N))
@@ -291,6 +317,13 @@ void Application::Frame() {
   auto message =
       session && !session->Error().empty() ? session->Error() : error_;
   ImGui::BeginChild("diagnostics", {0, 75}, ImGuiChildFlags_Borders);
+  if (session) {
+    const auto path = session->Entry().u8string();
+    if (ImGui::SmallButton("复制脚本路径"))
+      ImGui::SetClipboardText(path.c_str());
+    ImGui::SameLine();
+    ImGui::TextWrapped("当前脚本：%s", path.c_str());
+  }
   if (!message.empty())
     ImGui::TextWrapped("%s", message.c_str());
   else

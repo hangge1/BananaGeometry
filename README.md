@@ -57,7 +57,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 .\out\Drawer\drawer.exe
 ```
 
-`out/Drawer` 包含程序、Lua 用例、SDK、模板、文档及许可证，不包含依赖源码或编译器。GitHub Actions 工作流位于 `.github/workflows/windows.yml`，尚未推送或执行远程 CI。
+`out/Drawer` 包含程序、Lua 用例、SDK、模板、文档及许可证，不包含依赖源码或编译器。GitHub Actions 工作流位于 `.github/workflows/windows.yml`，通过远程推送触发，运行结果另行确认。
 
 ## 快速使用
 
@@ -68,12 +68,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 - 拖图形主体整体平移，拖控制点调整形状；Alt 强制平移，Shift 锁定方向，方向键微移。
 - 中键或空格+左键平移，滚轮缩放，Home 适应内容，Esc 取消，Delete 删除。
 - Ctrl+N/O/S/Z/Y：新建、加载、保存、撤销、重做；Ctrl+Shift+S 另存为。
-- 直接编辑程序旁的 `cases/<用例>/main.lua`，按 F5 重载当前实例。未保存的数据会先提示。
+- 仓库内运行直接编辑根目录的 `cases/<用例>/main.lua`；独立发布编辑 exe 旁的 `cases/`。底部显示实际脚本路径并可复制。
+- “应用脚本修改 F5”重新读取当前用例及模块，重置当前画布和撤销历史；未保存时先提示，失败保留原实例。
+- “更新用例列表”只扫描名称及新增/移除项，已打开的画布保持原样。可用 `drawer.exe --workspace <目录>` 显式选择含 `sdk/`、`cases/` 的工作区。
 - 文档扩展名为 `.drawer.json`，加载到新标签，不保留撤销历史。
 
 ## 自动化验证
 
-Catch2 + CTest 包含 75 个值、历史、视图、Lua、文档、千级对象及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 82 个值、历史、视图、Lua、文档、千级对象、脚本重载及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
@@ -81,12 +83,12 @@ Catch2 + CTest 包含 75 个值、历史、视图、Lua、文档、千级对象�
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
 ```
 
-该命令执行 77 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
+该命令执行 84 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
 
 可复现窗口检查与截图：
 
 ```powershell
-Start-Process .\build\windows\bin\Debug\drawer.exe -ArgumentList '--smoke-test','--screenshot','D:\tmp\drawer.bmp' -WindowStyle Hidden -Wait
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/capture-screenshots.ps1 -Executable build/windows/bin/Debug/drawer.exe -Scene polygon-selection
 ```
 
-截图路径的父目录必须存在。系统保存/加载对话框、跨显示器 DPI 等手工验收项目与本地自动化结果分别记录。
+截图和临时输入由脚本按运行编号管理。系统保存/加载对话框、跨显示器 DPI 等手工验收项目与本地自动化结果分别记录。
