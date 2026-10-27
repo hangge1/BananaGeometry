@@ -87,3 +87,16 @@
 - [ ] 实际鼠标键盘完整流程、跨显示器 DPI 和长时间使用验收。
 - [x] 恢复 Git 写权限并按模块创建阶段提交，各代码步骤从独立文件树验证。
 - [ ] 连接远程仓库后运行 GitHub Actions；当前仅提供工作流，未推送。
+
+## 9. 规范与模块化质量升级
+
+- [x] Google C++ 格式、命名和注释契约，固定 clang-format。
+- [x] 参考 Neovim 的 Lua 风格、固定 StyLua、LuaLS 公共类型注解。
+- [x] Catch2 参数化与行为测试，独立临时目录及 JUnit 报告。
+- [x] Google Benchmark 独立目标、重复测量及 JSON 报告，不进入发布程序。
+- [x] core、runtime、platform、render、app 的单向依赖与 CMake 目标。
+- [x] Lua SDK 的几何、状态、对象、交互和控件模块。
+- [x] 格式、模块 include/import 与 CMake 目标依赖检查，CI 质量步骤。
+- [x] Debug、Release 回归与关闭开发框架的独立生产构建。
+
+验证结果见测试记录；日志和增量提交保留实施证据。人工验收与远程 CI 仍按上节待办处理。

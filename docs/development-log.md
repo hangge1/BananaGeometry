@@ -174,3 +174,10 @@
 - 单元测试和性能测试各自管理 CMake；测试可执行文件统一输出到 `bin/<配置>/`。一键脚本默认运行 37 项正确性/窗口检查，`-Configuration Release -Benchmarks` 启用额外测量和报告。
 - 本地格式、模块检查及 Debug 一键构建 37/37 CTest 通过；故意加入的反向 include 和反向 CMake 依赖均被拒绝，源文件已恢复。
 - CI 增加格式、边界、JUnit 和性能报告步骤；未推送，因此不记录为远程 CI 已通过。
+
+### 本轮交付复核
+
+- 更新模块目录、架构、README、测试说明、实施计划和增量记录，移除当前说明中已失效的手写运行器描述，历史日志保留当时事实。
+- Debug 一键流程 37/37 通过；完整 Release `-Benchmarks` 一键流程 38/38 通过，10 组性能输入各重复三次并成功导出 JSON。
+- 在全新 `build/production` 中关闭单元和性能选项，复用仅 ImGui/Lua 的离线缓存，独立 Release 构建通过；解决方案无 Catch2、Google Benchmark 或测试程序目标。
+- 既有 `AGENTS.md` 保持原样；项目外 skill 未使用。人工窗口交互、系统对话框、跨屏 DPI 及远程 CI 仍未宣称通过。

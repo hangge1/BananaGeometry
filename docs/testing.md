@@ -1,60 +1,61 @@
 # 测试与验收记录
 
-日期：2026-10-27。以下区分自动化检查、截图检查与未完成的人工验收。
+日期：2026-10-27。区分正确性、窗口集成、性能测量及未完成的人工验收。
 
-## 当前单元测试体系
+## 测试组织与覆盖
 
-已迁移到 Catch2 3.16.1，测试按值、历史、坐标、文档和 Lua 会话分别组织，使用参数化数据、Section、异常与浮点断言。CTest 自动发现各个测试，支持 `ctest -L unit`、`ctest -L integration` 和测试程序的标签筛选。
+Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断言，CTest 自动发现测试。默认共 **37 项**：36 个单元/运行时行为用例及一个实际窗口检查；启用 Google Benchmark **1.10.0** 后增加性能入口检查，共 **38 项**。没有百分比覆盖门槛。
 
-本次 Debug 验证为 36 个独立单元/运行时用例和一个窗口检查，共 37/37 通过。`tests/lua/` 保存可独立维护的 Lua 行为脚本，错误报告保留脚本文件名；各测试拥有独立临时目录，可并行运行。
+| 文件 / 标签 | 行为覆盖 |
+| --- | --- |
+| `tests/value_test.cpp` / `[json]` | 数字精度、Unicode、空容器、非法 UTF-8、重复键、语法、深度与非有限值 |
+| `tests/history_test.cpp` / `[history]` | 保存点、空编辑、撤销重做、分支截断、容量限制 |
+| `tests/view_test.cpp` / `[view]` | 数学坐标往返、缩放锚点、平移、线段距离 |
+| `tests/document_test.cpp` / `[document]` | 中文路径、可编辑数据往返、视图恢复、版本及结构拒绝、失败写入保护、自定义对象 |
+| `tests/session_test.cpp` / `[lua]` | 连续绘制、实例隔离、拖拽合并、取消、回滚、指令预算、控件事务、示例、模块和失败重载 |
+| `tests/lua/` | 通过真实嵌入式运行时执行几何及事务规格，失败保留脚本文件名 |
+| `window_smoke` / `integration` | Win32 窗口、D3D11 或 WARP、实际用例与绘图；运行 12 帧并正常退出 |
+| `benchmark_smoke` / `performance` | 可选；确认性能场景实际运行并输出测量，无固定耗时门槛 |
 
-报告示例：`ctest --test-dir build/windows -C Debug --output-on-failure --output-junit test-results-Debug.xml`。以下 7 组表格及计时记录是首版历史结果，性能部分将由独立 Google Benchmark 目标替代。
+测试按模块维护，临时文件由独立 fixture 管理，支持并行。参数化和 Section 可在一个独立测试内覆盖多组输入，数量不等同于断言总数。
 
-## 自动化入口
+## 日常命令
 
 ```powershell
-cmake --build build/windows --config Debug --parallel
-ctest --test-dir build/windows -C Debug --output-on-failure
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-format.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-modules.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Configuration Debug
+ctest --test-dir build/windows -C Debug -L unit -j 4 --output-on-failure
+& ./build/windows/bin/Debug/drawer_tests.exe '[lua]' --reporter console
 ```
 
-Release 将配置改为 `Release`。`build.ps1` 顺序执行配置、构建、测试；`-Package` 在通过后安装到 `out/Drawer`。C++ 项目代码启用 `/W4 /WX`，编译警告按错误处理，第三方代码单独构建。
+一键脚本依次运行模块检查、配置、构建和 CTest，失败即停止；JUnit 为 `build/windows/test-results-Debug.xml`。也可直接给 CTest 传 `--output-junit test-results-Debug.xml`。`-Package` 在成功后安装到 `out/Drawer`。格式工具版本及安装见[代码规范](coding-style.md)。项目 C++ 启用 `/W4 /WX`，第三方代码独立构建。
 
-| CTest 套件 | 行为覆盖 |
-| --- | --- |
-| `json` | 数字精度、Unicode 与代理对、数组/对象区分、非法 UTF-8、重复键、无效语法、深度与非有限数值 |
-| `history` | 保存点、空编辑、撤销重做、分支截断、100 步容量 |
-| `view` | 数学坐标往返、Y 方向、鼠标缩放锚点、平移与线段距离 |
-| `lua` | 连续绘制、实例隔离、一次拖拽一步历史、模式保持、取消恢复、自定义数据回滚、稀疏/循环数据拒绝、指令预算、控件事务、中文路径与相对模块、重载失败保留旧会话 |
-| `document` | 中文文件路径、可编辑状态往返、恢复视图且重置历史、版本与结构错误、重复对象 ID、非法数据写入不覆盖旧文件、自定义对象恢复 |
-| `benchmark` | 千个对象的创建、事务、Lua 批量绘图提取与文档往返；输出测量结果，不设机器相关帧率门槛 |
-| `window_smoke` | 启动实际 Win32 窗口、D3D11 或 WARP 后端、加载用例、绘制界面和图元，运行 12 帧后正常退出 |
+## 性能测量
 
-测试用例使用 C++ 检查与 Lua 断言，不依赖额外测试框架。GitHub Actions 工作流已准备，因无远程推送，尚无远程 CI 结果。
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Configuration Release -Benchmarks
+```
+
+对文档编码、解码、历史提交、Lua 绘图提取、未命中扫描各测 100/1000 个对象，每组重复三次。准备和计时边界见 [benchmarks/README.md](../benchmarks/README.md)。使用实际经过时间；JSON 包含机器信息、原始数据和聚合统计，保存到 `build/windows/benchmark-Release.json`。脚本检查空报告和 `SkipWithError`，普通 CI 不使用机器相关时间阈值。
+
+本机一次 Release 测量中，1000 个对象的中位时间约为：编码 12.2 ms、解码 13.8 ms、历史提交 8.38 ms、Lua 绘图提取 4.03 ms、未命中扫描 3.58 ms。该样本来自 16 逻辑处理器环境、每组至少 0.1 秒计时；用于复现和比较，不代表 GPU 帧率或性能承诺。
 
 ## 已执行的本地检查
 
-- Debug 构建与 7/7 CTest 通过。
-- Release 构建与 7/7 CTest 通过。
-- 从新缓存自动下载依赖并通过哈希校验、配置成功；完整缓存使用 `FETCHCONTENT_FULLY_DISCONNECTED=ON` 配置成功。
-- 一键脚本 Debug 配置、构建、测试通过。
-- Release 安装目录独立运行 `--smoke-test` 成功；程序约 1.22 MB，包含文档和用例的目录约 1.3 MB，未打包系统字体或运行时。
-- 截图检查确认中文显示、标签激活、控件区域以及圆、椭圆、矩形、凹多边形、折线、文字和 Lua 自定义对象渲染。构建目录保留 `release-smoke.png`。
-- 一次本机 Release 测量：1000 个三角形创建与事务约 15.5 ms，Lua 绘图数据提取平均约 4.54 ms，JSON 约 87.8 KB。这不是 GPU 帧率或性能承诺。
+- 格式及模块边界检查通过；故意注入反向 include 和反向 CMake 依赖时均被拒绝，源文件已恢复。
+- 重构后的 Debug 一键构建及 **37/37** CTest 通过；Release 构建及 **38/38** CTest 通过。
+- Google Benchmark 10 组输入各重复三次，报告无错误；单独验证性能入口确实输出测量。
+- 单独关闭 `BUILD_TESTING`、`DRAWER_BUILD_BENCHMARKS`，复用离线运行依赖缓存完成生产构建；配置中无测试或性能框架目标。
+- 首版已执行依赖新缓存下载、哈希验证、离线配置和发布目录独立启动。截图确认中文和各类图元；历史结果与提交验证见[开发日志](development-log.md)和[增量版本](version-history.md)。
+
+GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档；尚未推送执行，未取得远程 CI 结果。
 
 ## 尚需人工验收
 
-- [ ] 实际点击系统打开/保存对话框，包括取消、覆盖和权限错误。
-- [ ] 在窗口中完整操作三角形及曲线的创建、选择、拖动和快捷键。
-- [ ] 关闭、重载及退出时的保存/放弃/取消弹窗流程，多标签逐项保存。
-- [ ] 跨显示器和不同 DPI 的移动、缩放与文字清晰度。
-- [ ] 长时间交互与实际用户算法场景的资源占用。
+- [ ] 系统打开/保存对话框的取消、覆盖和权限错误。
+- [ ] 实际鼠标键盘完成三角形及曲线的创建、选择、拖动和快捷键。
+- [ ] 关闭、重载、退出的保存/放弃/取消流程，多标签逐项保存。
+- [ ] 跨显示器、不同 DPI、长时间交互及实际用户算法的资源占用。
 
-这些项目不能由核心逻辑测试或静态截图替代。当前实现已经具备对应流程，但不把未执行的人工作业写成通过。
-
-## Git 版本与独立提交验证
-
-此前会话将 `.git` 设为只读，导致暂存失败。用户调整会话权限后，实际暂存及提交均恢复。
-
-已有实现按文档、JSON 数据、文档历史、Lua 运行时、SDK 示例、画布渲染、原生界面、构建交付分步整理。各代码步骤均从对应暂存树导出独立目录，再执行配置、构建和 CTest，通过后才提交；不使用工作区尚未提交的源文件补齐中间版本。
-
-独立验证日志位于工作目录的 `build/versioning/verify-*.log`。构建交付步骤额外验证一键脚本的 Release 构建、测试及安装。仓库保持本地使用，没有新增远程或推送。
+这些行为保留为人工验收项，不能由单元测试或静态截图替代。

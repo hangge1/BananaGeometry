@@ -17,6 +17,7 @@
 | [贡献指南](AGENTS.md) | 后续开发、文档维护与验证约定 |
 | [开发规则](docs/development-rules.md) | 项目内 skill、Git、日志和测试原则 |
 | [代码与注释规范](docs/coding-style.md) | Google C++、Lua 工程风格、注释契约与检查规则 |
+| [模块与目录](docs/modules.md) | 实际文件组织、模块边界、依赖方向与状态所有权 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
 | [增量版本记录](docs/version-history.md) | 首版分步提交与每步独立验证证据 |
@@ -45,7 +46,7 @@ ctest --test-dir build/windows -C Debug --output-on-failure
 .\build\windows\bin\Debug\drawer.exe
 ```
 
-首次配置自动下载固定版本的 ImGui 和 Lua，后续复用缓存。离线复用方式见[依赖策略](third_party/README.md)。
+首次配置自动下载固定版本的 ImGui、Lua 及单元测试依赖 Catch2，后续复用缓存。`-DBUILD_TESTING=OFF` 可只构建应用；性能框架默认关闭。离线复用方式见[依赖策略](third_party/README.md)。
 
 也可以使用一键脚本；所有步骤顺序执行，测试失败时停止：
 
@@ -67,12 +68,20 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 
 ## 自动化验证
 
-CTest 包含 JSON、历史、视图、Lua、文档、千级对象检查和原生窗口渲染检查。测试程序的千级检查输出 Lua 绘图数据提取耗时，不将其等同于 GPU 帧率。
+Catch2 + CTest 包含 36 个值、历史、视图、Lua、文档与千级对象行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+
+需要性能报告时单独启用 Google Benchmark；它不链接到应用：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
+```
+
+该命令执行 38 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 保存在 `build/windows/`。详细筛选命令和验证结果见[测试记录](docs/testing.md)，计时边界见[性能说明](benchmarks/README.md)。
 
 可复现窗口检查与截图：
 
 ```powershell
-Start-Process .\build\windows\bin\Debug\drawer.exe -ArgumentList '--smoke-test','--screenshot','D:\tmp\drawer.bmp' -Wait
+Start-Process .\build\windows\bin\Debug\drawer.exe -ArgumentList '--smoke-test','--screenshot','D:\tmp\drawer.bmp' -WindowStyle Hidden -Wait
 ```
 
 截图路径的父目录必须存在。系统保存/加载对话框、跨显示器 DPI 等手工验收项目与本地自动化结果分别记录。
