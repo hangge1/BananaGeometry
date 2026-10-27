@@ -102,3 +102,9 @@
 - 用户要求 C++ 遵循 Google 风格，Lua 参考大型工程，注释以清晰代码和特殊契约为主，并引入现代单元和性能测试框架。
 - 查阅 Google、Neovim、Catch2 和 Google Benchmark 官方资料后，落地 `coding-style.md`；这一步仅提交规范，不将待实施的迁移描述为已经完成。
 - 计划按规范、格式与注释、Catch2 单测、Google Benchmark、检查与 CI 分步验证提交。开发框架不会进入应用运行时。
+
+### Google C++ 格式基线
+
+- `.clang-format` 采用 Google 默认两空格、80 列和访问标签格式，仅保留 Windows 头文件顺序例外。
+- 已对项目 C++ 文件执行格式化；未格式化依赖或生成文件。
+- Debug 构建与既有 7/7 CTest 通过。本步不混入测试框架迁移或功能修改。
