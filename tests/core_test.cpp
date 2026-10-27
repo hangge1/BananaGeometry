@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include "document.h"
+#include "session.h"
 
 namespace {
 using drawer::Value;
@@ -102,10 +103,27 @@ void CodecTest() {
     Rejects([&] { drawer::DecodeDocument(invalid); });
 }
 
+void RuntimeTest(const std::filesystem::path& root) {
+    auto directory = root / "build/runtime-fixture";
+    std::filesystem::create_directories(directory);
+    auto entry = directory / "main.lua";
+    std::ofstream(entry) << "return {id='fixture',name='Runtime fixture',data_version=1,on_init=function(c) c.state.params.value=1 end}";
+    drawer::Session first(root/"sdk/drawer.lua", entry), second(root/"sdk/drawer.lua", entry);
+    CHECK(first.Execute("_host.begin_edit('change'); ctx.state.params.value=2; _host.commit_edit()"));
+    CHECK(first.State().At("params").At("value").Number() == 2);
+    CHECK(second.State().At("params").At("value").Number() == 1);
+    first.Undo(); CHECK(first.State().At("params").At("value").Number() == 1);
+    first.Redo(); CHECK(first.State().At("params").At("value").Number() == 2);
+    CHECK(!first.Execute("_host.begin_edit('error'); ctx.state.params.value=3; error('rollback')"));
+    CHECK(first.State().At("params").At("value").Number() == 2);
+    CHECK(first.Draw(1) && first.Controls({}));
+}
+
 } // namespace
 int main(int argc,char** argv) { try {
 CHECK(argc==3); std::string suite=argv[1];
 if(suite=="json") JsonTest();
 else if(suite=="history") HistoryTest(); else if(suite=="view") ViewTest(); else if(suite=="codec") CodecTest();
+else if(suite=="runtime") RuntimeTest(argv[2]);
 else throw std::runtime_error("Unknown suite"); std::cout<<suite<<": PASS\n"; return 0;
 } catch(const std::exception& e){ std::cerr<<e.what()<<'\n'; return 1; }}

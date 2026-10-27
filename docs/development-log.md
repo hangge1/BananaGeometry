@@ -64,3 +64,8 @@
 
 - 提交目标：`feat: Add document history and view model`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-3.log`。
+
+### 增量版本步骤 3
+
+- 提交目标：`feat: Add isolated Lua runtime and transactions`。
+- 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-4.log`。
