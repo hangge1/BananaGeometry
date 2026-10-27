@@ -74,3 +74,8 @@
 
 - 提交目标：`feat: Add Lua drawing SDK and example cases`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-5.log`。
+
+### 增量版本步骤 5
+
+- 提交目标：`feat: Add native canvas renderer`。
+- 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-6.log`。

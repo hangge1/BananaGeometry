@@ -5,11 +5,15 @@ if(NOT WIN32)
 endif()
 include(CTest)
 include(FetchContent)
+FetchContent_Declare(imgui_source
+    URL https://codeload.github.com/ocornut/imgui/tar.gz/refs/tags/v1.91.9b
+    URL_HASH SHA256=8E1BBC76C71D74FEF2FB85DB7E7CA8EBA13D6A86623C54992B60162DB554FFDB
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
 FetchContent_Declare(lua_source
     URL https://www.lua.org/ftp/lua-5.4.8.tar.gz
     URL_HASH SHA256=4F18DDAE154E793E46EEAB727C59EF1C0C0C2B744E7B94219710D76F530629AE
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-FetchContent_MakeAvailable(lua_source)
+FetchContent_MakeAvailable(imgui_source lua_source)
 add_library(drawer_options INTERFACE)
 target_compile_features(drawer_options INTERFACE cxx_std_17)
 target_compile_definitions(drawer_options INTERFACE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -25,9 +29,17 @@ endforeach()
 add_library(lua STATIC ${lua_sources})
 target_include_directories(lua PUBLIC "${lua_source_SOURCE_DIR}/src")
 
+add_library(imgui STATIC "${imgui_source_SOURCE_DIR}/imgui.cpp" "${imgui_source_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_source_SOURCE_DIR}/imgui_tables.cpp" "${imgui_source_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_source_SOURCE_DIR}/backends/imgui_impl_win32.cpp" "${imgui_source_SOURCE_DIR}/backends/imgui_impl_dx11.cpp")
+target_include_directories(imgui PUBLIC "${imgui_source_SOURCE_DIR}" "${imgui_source_SOURCE_DIR}/backends")
+target_link_libraries(imgui PRIVATE d3d11 d3dcompiler dwmapi)
+
 add_library(drawer_core STATIC src/value.cpp src/document.cpp src/session.cpp)
 target_include_directories(drawer_core PUBLIC src)
 target_link_libraries(drawer_core PUBLIC drawer_options PRIVATE lua)
+add_library(drawer_renderer STATIC src/renderer.cpp)
+target_link_libraries(drawer_renderer PRIVATE drawer_core imgui)
 if(BUILD_TESTING)
   add_executable(drawer_tests tests/core_test.cpp)
   target_link_libraries(drawer_tests PRIVATE drawer_core)
@@ -37,7 +49,7 @@ if(BUILD_TESTING)
   endforeach()
 endif()
 if(MSVC)
-  foreach(target drawer_core drawer_tests lua)
+  foreach(target drawer_core drawer_tests lua imgui drawer_renderer)
     if(TARGET ${target})
       set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
