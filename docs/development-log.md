@@ -79,3 +79,8 @@
 
 - 提交目标：`feat: Add native canvas renderer`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-6.log`。
+
+### 增量版本步骤 6
+
+- 提交目标：`feat: Add native drawing workspace`。
+- 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-7.log`。
