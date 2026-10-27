@@ -1,0 +1,9 @@
+/build/
+/out/
+/dist/
+/.vs/
+/imgui.ini
+*.user
+*.suo
+*.drawer.json
+*.tmp
