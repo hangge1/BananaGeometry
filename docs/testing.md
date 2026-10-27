@@ -65,7 +65,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate.ps1 -Configur
 - 当前生产安装目录独立执行 `--smoke-test` 成功；只包含应用可执行文件和运行所需脚本、文档、许可证，不安装测试或性能程序。
 - 首版已执行依赖新缓存下载、哈希验证、离线配置和发布目录独立启动。截图确认中文和各类图元；历史结果与提交验证见[开发日志](development-log.md)和[增量版本](version-history.md)。
 
-GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档；尚未推送执行，未取得远程 CI 结果。
+GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档，通过 `origin/main` 推送触发；远程 CI 结果尚未确认。
 
 ## 尚需人工验收
 
