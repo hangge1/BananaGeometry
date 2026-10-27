@@ -31,7 +31,24 @@ struct ApplicationFixture {
   testing::TestDirectory directory;
   std::unique_ptr<ImGuiContext, decltype(&ImGui::DestroyContext)> context{
       ImGui::CreateContext(), ImGui::DestroyContext};
-  Application application{PrepareApplication(directory.Path())};
+  std::filesystem::path selected_directory;
+  std::vector<std::filesystem::path> edited_paths;
+  std::vector<std::filesystem::path> remembered_paths;
+  bool editor_fails = false;
+  bool persistence_fails = false;
+  Application application{PrepareApplication(directory.Path()),
+                          {},
+                          {[this](const auto&) { return selected_directory; },
+                           [this](const auto& path) {
+                             if (editor_fails)
+                               throw std::runtime_error("editor unavailable");
+                             edited_paths.push_back(path);
+                           },
+                           [this](const auto& path) {
+                             if (persistence_fails)
+                               throw std::runtime_error("settings read-only");
+                             remembered_paths.push_back(path);
+                           }}};
   ApplicationFixture() {
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
@@ -120,23 +137,93 @@ TEST_CASE_METHOD(ApplicationFixture,
   CHECK(application.Error().empty());
 }
 TEST_CASE_METHOD(ApplicationFixture,
-                 "F5 inside a checkout reads source instead of stale copies",
+                 "An explicit case directory loads without its own SDK",
                  "[app][reload][workspace]") {
-  testing::WriteScript(directory.Path() / ".git", "gitdir: test-worktree");
-  testing::WriteScript(directory.Path() / "CMakeLists.txt", "project(Drawer)");
-  const auto executable_directory = directory.Path() / "out/Drawer";
-  PrepareApplication(executable_directory);
-  Application running(ResolveWorkspaceRoot(executable_directory));
-  Frame(&running);
+  const auto runtime = directory.Path() / "out/Drawer";
+  PrepareApplication(runtime);
+  Application running(runtime, directory.Path() / "cases");
   Rename();
+  Frame(&running);
   Reload(&running);
   REQUIRE(running.Active());
   CHECK(running.Active()->Name() == "Renamed case");
   CHECK(running.Active()->Entry() ==
         directory.Path() / "cases/triangle/main.lua");
-  Session copied(executable_directory / "sdk/drawer.lua",
-                 executable_directory / "cases/triangle/main.lua");
+  CHECK(running.Active()->Sdk() == runtime / "sdk/drawer.lua");
+  Session copied(runtime / "sdk/drawer.lua",
+                 runtime / "cases/triangle/main.lua");
   CHECK(copied.Name() == "Original name");
+}
+TEST_CASE_METHOD(ApplicationFixture,
+                 "Choosing a case directory preserves dirty tabs and remembers "
+                 "only successful choices",
+                 "[app][workspace]") {
+  auto* old = application.Active();
+  testing::ExecuteChecked(
+      old, "ctx:edit('data',function()ctx.state.params.value=42 end)");
+  const auto before = old->State();
+  CHECK_FALSE(application.OpenCaseDirectory());
+  CHECK(remembered_paths.empty());
+  selected_directory = directory.Path() / "missing";
+  CHECK_FALSE(application.OpenCaseDirectory());
+  CHECK(application.CaseDirectory() == directory.Path() / "cases");
+  CHECK(remembered_paths.empty());
+  selected_directory = directory.Path() / L"空 用例目录";
+  std::filesystem::create_directory(selected_directory);
+  CHECK(application.OpenCaseDirectory());
+  CHECK(application.Cases().empty());
+  CHECK(application.Active() == old);
+  CHECK(old->State() == before);
+  CHECK(old->Dirty());
+  REQUIRE(remembered_paths.size() == 1);
+  CHECK(remembered_paths.back() == selected_directory);
+  CHECK(application.SetCaseDirectory({}));
+  CHECK(remembered_paths.back().empty());
+}
+TEST_CASE_METHOD(ApplicationFixture,
+                 "Old tab reloads and editor requests retain their source "
+                 "after a directory switch",
+                 "[app][reload][editor][workspace]") {
+  const auto external = directory.Path() / "external";
+  std::filesystem::create_directories(external);
+  std::filesystem::copy(directory.Path() / "cases", external / "cases",
+                        std::filesystem::copy_options::recursive);
+  testing::WriteScript(external / "cases/triangle/labels.lua",
+                       "return {name='External case',caption='External text'}");
+  REQUIRE(application.SetCaseDirectory(external / "cases"));
+  Rename();
+  Reload();
+  CHECK(application.Active()->Name() == "Renamed case");
+  REQUIRE(application.Cases().size() == 1);
+  CHECK(application.Cases()[0].name == "External case");
+  REQUIRE(application.EditCurrentScript());
+  CHECK(edited_paths.back() == directory.Path() / "cases/triangle/main.lua");
+  application.NewCase(application.Cases()[0].entry);
+  REQUIRE(application.Active());
+  CHECK(application.Active()->Name() == "External case");
+  CHECK(application.Active()->Sdk() == directory.Path() / "sdk/drawer.lua");
+  REQUIRE(application.EditCurrentScript());
+  CHECK(edited_paths.back() == external / "cases/triangle/main.lua");
+}
+TEST_CASE_METHOD(ApplicationFixture,
+                 "Editor and preference failures leave drawing data intact",
+                 "[app][editor][workspace]") {
+  const auto before = application.Active()->State();
+  editor_fails = true;
+  CHECK_FALSE(application.EditCurrentScript());
+  CHECK(application.Error().find("editor unavailable") != std::string::npos);
+  CHECK(application.Active()->State() == before);
+  CHECK(edited_paths.empty());
+  persistence_fails = true;
+  const auto external = directory.Path() / "external cases";
+  std::filesystem::create_directory(external);
+  CHECK(application.SetCaseDirectory(external));
+  CHECK(application.CaseDirectory() == external);
+  CHECK(application.Error().find("settings read-only") != std::string::npos);
+  CHECK(application.Active()->State() == before);
+  std::filesystem::remove(application.Active()->Entry());
+  CHECK_FALSE(application.EditCurrentScript());
+  CHECK(edited_paths.empty());
 }
 }  // namespace
 }  // namespace drawer

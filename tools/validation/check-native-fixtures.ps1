@@ -17,6 +17,11 @@ try {
     $result = Invoke-ValidationCommand $context 'rejected-workspace' $Executable @('--smoke-test', '--workspace', $missing, '--error-log', $workspaceLog) -TimeoutSeconds 30 -AllowFailure
     if ($result.ExitCode -eq 0 -or -not (Test-Path -LiteralPath $workspaceLog)) { throw 'Invalid explicit workspace was not rejected' }
     $diagnostic = Get-Content -LiteralPath $workspaceLog -Raw -Encoding UTF8
-    if ($diagnostic -notmatch 'Workspace requires sdk/drawer.lua and cases/' -or -not $diagnostic.Contains($missing)) { throw 'Invalid workspace failed for an unexpected reason' }
+    if ($diagnostic -notmatch 'Case directory does not exist:' -or -not $diagnostic.Contains($missing)) { throw 'Invalid workspace failed for an unexpected reason' }
+    $directoryLog = Join-Path $context.ArtifactDirectory 'logs/rejected-case-directory-native.log'
+    $result = Invoke-ValidationCommand $context 'rejected-case-directory' $Executable @('--smoke-test', '--cases-dir', $missing, '--error-log', $directoryLog) -TimeoutSeconds 30 -AllowFailure
+    if ($result.ExitCode -eq 0 -or -not (Test-Path -LiteralPath $directoryLog)) { throw 'Invalid explicit case directory was not rejected' }
+    $diagnostic = Get-Content -LiteralPath $directoryLog -Raw -Encoding UTF8
+    if ($diagnostic -notmatch 'Case directory does not exist:' -or -not $diagnostic.Contains($missing)) { throw 'Invalid case directory failed for an unexpected reason' }
     $status = 'passed'
 } finally { Complete-ValidationContext $context $status }

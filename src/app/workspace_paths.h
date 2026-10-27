@@ -4,13 +4,13 @@
 #include <filesystem>
 
 namespace drawer {
-// Prefer an explicit workspace, then the nearest enclosing source checkout,
-// otherwise the executable's directory. Resolution never depends on the CWD
-// unless an explicit relative workspace is supplied. Application validates
-// assets.
-std::filesystem::path ResolveWorkspaceRoot(
+// Explicit directory wins over the remembered choice, then bundled cases.
+// Does not inspect ancestors or require a copy of the host SDK in the
+// directory.
+std::filesystem::path ResolveCaseDirectory(
     const std::filesystem::path& executable_directory,
-    const std::filesystem::path& explicit_workspace = {});
+    const std::filesystem::path& explicit_directory = {},
+    const std::filesystem::path& remembered_directory = {});
 }  // namespace drawer
 
 #endif  // DRAWER_SRC_APP_WORKSPACE_PATHS_H_

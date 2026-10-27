@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "app/canvas_view.h"
+#include "app/case_library.h"
+#include "app/desktop_services.h"
 #include "runtime/session.h"
 
 namespace drawer {
@@ -13,17 +15,21 @@ namespace drawer {
 // deferred until the save/discard/cancel dialog has resolved.
 class Application {
  public:
-  struct CaseInfo {
-    std::filesystem::path entry;
-    std::string id;
-    std::string name;
-  };
-  explicit Application(std::filesystem::path root);
+  explicit Application(std::filesystem::path runtime_root,
+                       std::filesystem::path case_directory = {},
+                       DesktopServices desktop = {});
   void Frame();
   void RequestExit();
   bool ShouldExit() const { return exit_; }
   // Rescans metadata without replacing open sessions or their document data.
   void RefreshCases();
+  // Directory changes preserve open tabs. Empty path selects bundled cases.
+  bool SetCaseDirectory(const std::filesystem::path& directory);
+  bool OpenCaseDirectory();
+  bool EditCurrentScript();
+  void NewCase(const std::filesystem::path& entry);
+  void ReportError(const std::string& message);
+  const std::filesystem::path& CaseDirectory() const { return case_directory_; }
   const std::vector<CaseInfo>& Cases() const { return cases_; }
   const std::string& Error() const { return error_; }
   // Borrowed until the tab closes or successfully reloads.
@@ -37,14 +43,15 @@ class Application {
     std::unique_ptr<Session> session;
   };
   enum class Action { kNone, kClose, kReload, kExit };
-  void New(const std::filesystem::path& entry);
   void Open();
   bool Save(Session* session, bool save_as = false);
   void Request(Action action, int key);
   void Complete();
   void Confirm();
   void Controls(Session* session);
-  std::filesystem::path root_;
+  std::filesystem::path runtime_root_;
+  std::filesystem::path case_directory_;
+  DesktopServices desktop_;
   std::vector<CaseInfo> cases_;
   std::vector<Tab> tabs_;
   int next_key_ = 1;

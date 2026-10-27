@@ -1,4 +1,4 @@
-param([string]$Executable = 'build/windows/bin/Release/drawer.exe', [string[]]$Scene, [string]$Workspace, [string]$RunId)
+param([string]$Executable = 'build/windows/bin/Release/drawer.exe', [string[]]$Scene, [string]$CaseDirectory, [string]$Workspace, [string]$RunId)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'common.psm1') -Force
 $context = New-ValidationContext -Task 'screenshots' -RunId $RunId
@@ -7,6 +7,8 @@ try {
     $root = $context.RepositoryRoot
     if (-not [System.IO.Path]::IsPathRooted($Executable)) { $Executable = Join-Path $root $Executable }
     if ($Workspace -and -not [System.IO.Path]::IsPathRooted($Workspace)) { $Workspace = Join-Path $root $Workspace }
+    if ($CaseDirectory -and -not [System.IO.Path]::IsPathRooted($CaseDirectory)) { $CaseDirectory = Join-Path $root $CaseDirectory }
+    if ($Workspace -and $CaseDirectory) { throw 'Choose either -CaseDirectory or legacy -Workspace' }
     $manifest = Get-Content -LiteralPath (Join-Path $root 'tests/scenarios/manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($manifest.schema_version -ne 1) { throw 'Unsupported scenario manifest' }
     $scenes = @($manifest.scenes | Where-Object { -not $Scene -or $_.id -in $Scene })
@@ -23,6 +25,7 @@ try {
         $errorLog = Join-Path $context.ArtifactDirectory "logs/$($entry.id)-native.log"
         $arguments = @('--smoke-test', '--case-id', $entry.case_id, '--fixture', $fixture, '--screenshot', $bitmapPath, '--error-log', $errorLog)
         if ($Workspace) { $arguments += @('--workspace', $Workspace) }
+        if ($CaseDirectory) { $arguments += @('--cases-dir', $CaseDirectory) }
         $result = Invoke-ValidationCommand $context $entry.id $Executable $arguments -TimeoutSeconds 30 -AllowFailure
         if ($result.ExitCode -ne 0) {
             $details = if (Test-Path -LiteralPath $errorLog) { Get-Content -LiteralPath $errorLog -Raw -Encoding UTF8 } else { 'No native diagnostic was produced' }

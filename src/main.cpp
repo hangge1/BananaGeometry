@@ -11,6 +11,8 @@
 
 #include "app/application.h"
 #include "app/workspace_paths.h"
+#include "platform/desktop_actions.h"
+#include "platform/preferences.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -142,6 +144,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     std::filesystem::path screenshot;
     std::filesystem::path fixture;
     std::filesystem::path workspace;
+    std::filesystem::path case_directory;
     std::string case_id = "drawer.gallery";
     for (int i = 1; i < argc; ++i) {
       if (std::wstring(argv[i]) == L"--smoke-test") smoke = true;
@@ -158,8 +161,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
           throw std::runtime_error("--workspace requires a directory");
         workspace = argv[++i];
       }
+      if (std::wstring(argv[i]) == L"--cases-dir") {
+        if (i + 1 >= argc)
+          throw std::runtime_error("--cases-dir requires a directory");
+        case_directory = argv[++i];
+        if (case_directory.empty())
+          throw std::runtime_error("--cases-dir requires a nonempty directory");
+      }
     }
     LocalFree(argv);
+    if (!workspace.empty()) {
+      if (!case_directory.empty())
+        throw std::runtime_error("Use either --cases-dir or --workspace");
+      case_directory = workspace / "cases";
+    }
     if (!smoke && !fixture.empty())
       throw std::runtime_error("--fixture requires --smoke-test");
     ImGui_ImplWin32_EnableDpiAwareness();
@@ -230,8 +245,31 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
       throw std::runtime_error("ImGui backend initialization failed");
     wchar_t executable[32768]{};
     GetModuleFileNameW(nullptr, executable, 32768);
-    drawer::Application app(drawer::ResolveWorkspaceRoot(
-        std::filesystem::path(executable).parent_path(), workspace));
+    const auto runtime_root = std::filesystem::path(executable).parent_path();
+    drawer::DesktopServices desktop;
+    drawer::Preferences preferences;
+    std::string preferences_error;
+    if (!smoke) {
+      std::filesystem::path preferences_path;
+      try {
+        preferences_path = drawer::LocalPreferencesPath();
+        if (case_directory.empty())
+          preferences = drawer::ReadPreferences(preferences_path);
+      } catch (const std::exception& error) {
+        preferences_error = "本机目录设置不可用：" + std::string(error.what());
+      }
+      desktop.remember_directory = [preferences_path](const auto& directory) {
+        if (preferences_path.empty())
+          throw std::runtime_error("Local preferences path is unavailable");
+        drawer::WritePreferences(preferences_path, {directory});
+      };
+    }
+    drawer::Application app(
+        runtime_root,
+        drawer::ResolveCaseDirectory(runtime_root, case_directory,
+                                     preferences.case_directory),
+        std::move(desktop));
+    if (!preferences_error.empty()) app.ReportError(preferences_error);
     g_application = &app;
     if (smoke && !app.SmokeCheck(case_id, fixture))
       throw std::runtime_error("Case smoke check failed");

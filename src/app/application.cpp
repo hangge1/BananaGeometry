@@ -1,45 +1,102 @@
 #include "app/application.h"
 
 #include <algorithm>
-#include <set>
 #include <stdexcept>
 
 #include "app/lua_ui.h"
+#include "app/workspace_paths.h"
 #include "imgui.h"
 #include "platform/document_io.h"
+#include "platform/desktop_actions.h"
 #include "platform/file_dialog.h"
 
 namespace drawer {
-Application::Application(std::filesystem::path root) : root_(std::move(root)) {
-  if (!std::filesystem::is_regular_file(root_ / "sdk/drawer.lua") ||
-      !std::filesystem::is_directory(root_ / "cases"))
-    throw std::runtime_error("Workspace requires sdk/drawer.lua and cases/: " +
-                             root_.u8string());
+Application::Application(std::filesystem::path runtime_root,
+                         std::filesystem::path case_directory,
+                         DesktopServices desktop)
+    : runtime_root_(std::filesystem::absolute(runtime_root).lexically_normal()),
+      case_directory_(ResolveCaseDirectory(runtime_root_, case_directory)),
+      desktop_(std::move(desktop)) {
+  if (!std::filesystem::is_regular_file(runtime_root_ / "sdk/drawer.lua"))
+    throw std::runtime_error("Runtime requires sdk/drawer.lua: " +
+                             runtime_root_.u8string());
+  if (!desktop_.choose_directory)
+    desktop_.choose_directory = ChooseCaseDirectory;
+  if (!desktop_.edit_script) desktop_.edit_script = EditScriptFile;
   RefreshCases();
   for (const auto& item : cases_)
     if (item.id == "drawer.triangle") {
-      New(item.entry);
+      NewCase(item.entry);
       break;
     }
+  if (!Active() && !cases_.empty()) NewCase(cases_.front().entry);
 }
 void Application::RefreshCases() {
-  cases_.clear();
-  error_.clear();
-  std::set<std::string> ids;
-  for (const auto& entry : DiscoverCases(root_ / "cases")) {
-    try {
-      Session session(root_ / "sdk/drawer.lua", entry);
-      if (!ids.insert(session.Id()).second)
-        throw std::runtime_error("Duplicate case ID: " + session.Id());
-      cases_.push_back({entry, session.Id(), session.Name()});
-    } catch (const std::exception& e) {
-      error_ += entry.u8string() + ": " + e.what() + "\n";
-    }
+  try {
+    auto library =
+        ScanCaseLibrary(runtime_root_ / "sdk/drawer.lua", case_directory_);
+    cases_ = std::move(library.cases);
+    error_ = std::move(library.diagnostics);
+  } catch (const std::exception& error) {
+    error_ = error.what();
   }
 }
-void Application::New(const std::filesystem::path& entry) {
+void Application::ReportError(const std::string& message) {
+  if (!error_.empty()) error_ += '\n';
+  error_ += message;
+}
+bool Application::SetCaseDirectory(const std::filesystem::path& directory) {
   try {
-    auto session = std::make_unique<Session>(root_ / "sdk/drawer.lua", entry);
+    const auto selected = ResolveCaseDirectory(runtime_root_, directory);
+    auto library = ScanCaseLibrary(runtime_root_ / "sdk/drawer.lua", selected);
+    case_directory_ = selected;
+    cases_ = std::move(library.cases);
+    error_ = std::move(library.diagnostics);
+    notice_ = "用例目录已打开；已打开的画布仍绑定原脚本。";
+    if (desktop_.remember_directory) {
+      const auto bundled = ResolveCaseDirectory(runtime_root_);
+      try {
+        desktop_.remember_directory(
+            selected == bundled ? std::filesystem::path{} : selected);
+      } catch (const std::exception& error) {
+        ReportError("目录已打开，但无法记住选择：" + std::string(error.what()));
+      }
+    }
+    return true;
+  } catch (const std::exception& error) {
+    error_ = error.what();
+    return false;
+  }
+}
+bool Application::OpenCaseDirectory() {
+  try {
+    const auto selected = desktop_.choose_directory(case_directory_);
+    return !selected.empty() && SetCaseDirectory(selected);
+  } catch (const std::exception& error) {
+    error_ = error.what();
+    return false;
+  }
+}
+bool Application::EditCurrentScript() {
+  auto* session = Active();
+  if (!session) return false;
+  try {
+    if (!std::filesystem::is_regular_file(session->Entry()))
+      throw std::runtime_error("Script does not exist: " +
+                               session->Entry().u8string());
+    desktop_.edit_script(session->Entry());
+    error_.clear();
+    notice_ = "已请求编辑当前脚本；保存后按 F5 应用修改。";
+    return true;
+  } catch (const std::exception& error) {
+    error_ = error.what();
+    return false;
+  }
+}
+void Application::NewCase(const std::filesystem::path& entry) {
+  try {
+    auto session =
+        std::make_unique<Session>(runtime_root_ / "sdk/drawer.lua", entry);
     active_ = next_key_++;
     select_key_ = active_;
     tabs_.push_back({active_, std::move(session)});
@@ -63,8 +120,8 @@ void Application::Open() {
     if (found == cases_.end())
       throw std::runtime_error("Missing case plugin: " + document.case_id +
                                ". Refresh the case list after installing it.");
-    auto session =
-        std::make_unique<Session>(root_ / "sdk/drawer.lua", found->entry);
+    auto session = std::make_unique<Session>(runtime_root_ / "sdk/drawer.lua",
+                                             found->entry);
     session->Restore(document);
     session->file = path;
     active_ = next_key_++;
@@ -120,14 +177,18 @@ void Application::Complete() {
       if (candidate->Id() != found->session->Id())
         throw std::runtime_error(
             "Case ID changed; open it as a new case instead");
-      auto metadata = std::find_if(
-          cases_.begin(), cases_.end(),
-          [&](const auto& item) { return item.id == candidate->Id(); });
-      if (metadata != cases_.end())
-        metadata->name = candidate->Name();
-      else
-        cases_.push_back(
-            {candidate->Entry(), candidate->Id(), candidate->Name()});
+      // A tab can outlive the selected library; equal IDs do not imply equal
+      // sources.
+      if (candidate->Entry().parent_path().parent_path() == case_directory_) {
+        auto metadata = std::find_if(
+            cases_.begin(), cases_.end(),
+            [&](const auto& item) { return item.entry == candidate->Entry(); });
+        if (metadata != cases_.end())
+          metadata->name = candidate->Name();
+        else
+          cases_.push_back(
+              {candidate->Entry(), candidate->Id(), candidate->Name()});
+      }
       found->session = std::move(candidate);
       error_.clear();
       notice_ = "脚本修改已应用：当前画布及撤销历史已重置，其他画布不变。";
@@ -208,7 +269,7 @@ void Application::Frame() {
   if (ImGui::Button("新建画布")) ImGui::OpenPopup("选择用例");
   if (ImGui::BeginPopup("选择用例")) {
     for (const auto& item : cases_)
-      if (ImGui::Selectable(item.name.c_str())) New(item.entry);
+      if (ImGui::Selectable(item.name.c_str())) NewCase(item.entry);
     ImGui::EndPopup();
   }
   ImGui::SameLine();
@@ -267,6 +328,9 @@ void Application::Frame() {
   const float bottom = 135;
   ImGui::BeginChild("cases", {210, -bottom}, ImGuiChildFlags_Borders);
   ImGui::TextUnformatted("绘制用例");
+  if (ImGui::Button("打开用例目录", {-1, 0})) OpenCaseDirectory();
+  if (ImGui::Button("使用内置用例", {-1, 0})) SetCaseDirectory({});
+  ImGui::TextWrapped("目录：%s", case_directory_.u8string().c_str());
   ImGui::TextDisabled("同一用例可打开多份");
   for (const auto& item : cases_) {
     ImGui::PushID(item.id.c_str());
@@ -274,7 +338,7 @@ void Application::Frame() {
     ImGui::Separator();
     ImGui::Spacing();
     ImGui::TextWrapped("%s", item.name.c_str());
-    if (ImGui::Button("新建实例", {-1, 0})) New(item.entry);
+    if (ImGui::Button("新建实例", {-1, 0})) NewCase(item.entry);
     ImGui::PopID();
   }
   ImGui::EndChild();
@@ -319,6 +383,11 @@ void Application::Frame() {
   ImGui::BeginChild("diagnostics", {0, 75}, ImGuiChildFlags_Borders);
   if (session) {
     const auto path = session->Entry().u8string();
+    if (ImGui::SmallButton("编辑当前脚本")) EditCurrentScript();
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip(
+          "用编辑器打开当前画布绑定的脚本；保存后按 F5 应用修改。");
+    ImGui::SameLine();
     if (ImGui::SmallButton("复制脚本路径"))
       ImGui::SetClipboardText(path.c_str());
     ImGui::SameLine();
@@ -336,14 +405,17 @@ void Application::Frame() {
 }
 bool Application::SmokeCheck(const std::string& case_id,
                              const std::filesystem::path& fixture) {
-  if (cases_.size() < 3 || !Active()) return false;
+  if (cases_.empty()) {
+    if (!error_.empty()) throw std::runtime_error(error_);
+    return false;
+  }
   for (const auto& info : cases_) {
-    Session test(root_ / "sdk/drawer.lua", info.entry);
+    Session test(runtime_root_ / "sdk/drawer.lua", info.entry);
     if (!test.Controls({}) || !test.Draw(1)) return false;
   }
   for (const auto& info : cases_)
     if (info.id == case_id) {
-      if (!Active() || Active()->Id() != case_id) New(info.entry);
+      if (!Active() || Active()->Entry() != info.entry) NewCase(info.entry);
       break;
     }
   if (!Active() || Active()->Id() != case_id) return false;

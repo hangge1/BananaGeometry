@@ -4,7 +4,7 @@
 
 ## 测试组织与覆盖
 
-Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断言，CTest 自动发现测试。默认共 **83 项**：82 个单元/运行时/应用输入/场景及夹具行为用例和一个实际窗口检查；启用 Google Benchmark **1.10.0** 后增加性能入口检查，共 **84 项**。没有百分比覆盖门槛。
+Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断言，CTest 自动发现测试。默认共 **90 项**：89 个单元/运行时/应用输入/偏好/场景及夹具行为用例和一个实际窗口检查；启用 Google Benchmark **1.10.0** 后增加性能入口检查，共 **91 项**。没有百分比覆盖门槛。
 
 | 文件 / 标签 | 行为覆盖 |
 | --- | --- |
@@ -14,7 +14,8 @@ Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断�
 | `tests/document_test.cpp` / `[document]` | 中文路径、可编辑数据往返、视图恢复、版本及结构拒绝、失败写入保护、自定义对象 |
 | `tests/session_test.cpp` / `[lua]` | 连续绘制、实例隔离、拖拽合并、取消、回滚、指令预算、控件事务、示例、模块和失败重载 |
 | `tests/application_test.cpp` / `[app]`、`[reload]` | 真实 F5 事件、模块及文字变化、列表名称同步、失败恢复、扫描保留画布、旧副本隔离 |
-| `tests/workspace_paths_test.cpp` / `[workspace]` | 仓库内直接读取源码、最近工作区与 Git worktree、独立发布回退、显式路径及缺失资源错误 |
+| `tests/workspace_paths_test.cpp` / `[workspace]` | 显式/记忆/内置目录优先级、不再隐式探测仓库、缺失目录可恢复 |
+| `tests/preferences_test.cpp` / `[preferences]`、`[editor]` | 中文路径、默认重置、损坏设置保留、失败写入保护及缺失脚本拒绝 |
 | `tests/interaction_test.cpp` / `[interaction]`、`[text]` | 标准/自定义对象高亮、控制点、样式隔离、文本范围、缩放、抓取偏移、空点击、取消、撤销重做、前后顺序和无效测量 |
 | `tests/canvas_view_test.cpp` / `[app]`、`[render]` | 实际 ImGui 字体和鼠标事件链；多行中文、字面 `##`、缩放与字体比例；主体平移、画布外捕获、光标和方向键 |
 | `tests/translation_test.cpp` / `[translation]` | 全图元平移、形状及样式保持、Alt/Shift、抖动阈值、撤销重做、Esc、键盘与自定义坐标回调 |

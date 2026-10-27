@@ -19,6 +19,7 @@
 | [代码与注释规范](docs/coding-style.md) | Google C++、Lua 工程风格、注释契约与检查规则 |
 | [模块与目录](docs/modules.md) | 实际文件组织、模块边界、依赖方向与状态所有权 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
+| [用例目录与编辑](docs/case-directories.md) | 统一加载、记住目录、编辑当前脚本 |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
 | [本轮人工验收](docs/manual-acceptance.md) | 多边形、可变阶数贝塞尔及交互式 Gallery 的验收步骤 |
 | [验证工具与产物](docs/validation.md) | 可复用验证入口、场景、运行报告和临时文件管理 |
@@ -68,14 +69,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 - 拖图形主体整体平移，拖控制点调整形状；Alt 强制平移，Shift 锁定方向，方向键微移。
 - 中键或空格+左键平移，滚轮缩放，Home 适应内容，Esc 取消，Delete 删除。
 - Ctrl+N/O/S/Z/Y：新建、加载、保存、撤销、重做；Ctrl+Shift+S 另存为。
-- 仓库内运行直接编辑根目录的 `cases/<用例>/main.lua`；独立发布编辑 exe 旁的 `cases/`。底部显示实际脚本路径并可复制。
+- 开发和发布都用“打开用例目录”选择脚本来源；开发本项目时选择仓库根目录的 `cases/`。程序记住选择，“使用内置用例”返回 exe 旁示例。
+- “编辑当前脚本”用系统编辑器打开当前画布的 `main.lua`，没有编辑关联时使用记事本；底部显示实际路径并可复制。
 - “应用脚本修改 F5”重新读取当前用例及模块，重置当前画布和撤销历史；未保存时先提示，失败保留原实例。
-- “更新用例列表”只扫描名称及新增/移除项，已打开的画布保持原样。可用 `drawer.exe --workspace <目录>` 显式选择含 `sdk/`、`cases/` 的工作区。
+- “更新用例列表”只扫描当前目录，已打开画布和 F5 的来源保持原样。`drawer.exe --cases-dir <目录>` 覆盖本次启动；外部用例无需复制 SDK。详见[用例目录](docs/case-directories.md)。
 - 文档扩展名为 `.drawer.json`，加载到新标签，不保留撤销历史。
 
 ## 自动化验证
 
-Catch2 + CTest 包含 82 个值、历史、视图、Lua、文档、千级对象、脚本重载及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 89 个值、历史、视图、Lua、文档、千级对象、脚本重载、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
@@ -83,7 +85,7 @@ Catch2 + CTest 包含 82 个值、历史、视图、Lua、文档、千级对象�
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
 ```
 
-该命令执行 84 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
+该命令执行 91 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
 
 可复现窗口检查与截图：
 

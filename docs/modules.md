@@ -19,7 +19,7 @@
 
 交互模块通过 `Session::GetPointerHint` 提供语义提示，由 `CanvasView` 映射光标；运行时不持有界面状态。`Session::ExecuteFile` 负责可信验证夹具的受限执行，`Application::SmokeCheck` 负责用例选择，桌面入口仅处理参数与图像捕获。
 
-`app/workspace_paths.*` 独立处理显式工作区、源码仓库及独立发布目录的选择，不读取 Lua 或操作界面；`Application` 校验资源并管理列表扫描与实例重载。脚本目录选择不依赖构建机的绝对路径。
+`app/workspace_paths.*` 按显式参数、记忆、内置目录选择路径；`app/case_library.*` 扫描并校验用例；`Application` 管理画布来源与重载。`DesktopServices` 可替换目录选择、编辑与记忆操作；`platform/desktop_actions.*` 实现 Windows 选择器和编辑动作，`platform/preferences.*` 管理偏好校验与原子保存。
 
 公共头文件声明必要契约；`runtime/detail/` 是私有实现，其他模块不得包含。新接口必须说明坐标、所有权、失效与错误规则。各会话独立拥有数据和 Lua 状态；只有桌面入口持有窗口回调所需的图形资源。
 
