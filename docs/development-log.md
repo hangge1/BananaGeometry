@@ -89,3 +89,10 @@
 
 - 提交目标：`chore: Add build workflow and release verification`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-8.log`。
+
+## 2026-10-27：增量版本整理完成
+
+- 文档基线及七个实施步骤均已提交，具体提交标识见 `version-history.md`。
+- 每个代码步骤均从独立 Git 文件树构建并测试；最终交付步骤额外通过一键 Release 构建、7/7 CTest 和安装验证。
+- Git 权限限制已解决，此前受阻记录作为历史保留。后续恢复按小目标实时提交，不再积累整版代码。
+- 本轮没有新增产品功能，没有使用项目外 skill，也没有创建远程或推送。人工验收待办保持不变。
