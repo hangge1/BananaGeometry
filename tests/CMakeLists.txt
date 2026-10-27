@@ -8,7 +8,8 @@ FetchContent_Declare(catch2_source
 FetchContent_MakeAvailable(catch2_source)
 configure_file(test_config.h.in generated/test_config.h @ONLY)
 add_executable(drawer_tests value_test.cpp history_test.cpp
-    view_test.cpp document_test.cpp session_test.cpp interaction_test.cpp canvas_view_test.cpp bezier_test.cpp drawing_test.cpp)
+    view_test.cpp document_test.cpp session_test.cpp interaction_test.cpp canvas_view_test.cpp
+    bezier_test.cpp drawing_test.cpp case_configuration_test.cpp)
 target_include_directories(drawer_tests PRIVATE . "${CMAKE_CURRENT_BINARY_DIR}/generated")
 target_link_libraries(drawer_tests PRIVATE drawer_runtime drawer_platform drawer_app drawer_render Catch2::Catch2WithMain)
 set_target_properties(drawer_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

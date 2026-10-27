@@ -1,37 +1,58 @@
+local defaults =
+  { vertices = 3, free = false, width = 2, fill = true, label = '多边形', palette = 1 }
+local colors = { { 0.35, 0.65, 1, 1 }, { 0.3, 0.85, 0.65, 1 }, { 1, 0.65, 0.3, 1 } }
+local function initialize(ctx)
+  ctx:ensure_parameters(defaults)
+end
+
 return {
+  -- Preserve the original ID so saved triangle documents continue to load.
   id = 'drawer.triangle',
-  name = '三角形 / Triangle',
+  name = '多边形 / Polygon',
   data_version = 1,
   default_mode = 'draw',
-  on_init = function(ctx)
-    ctx.state.params = { width = 2, fill = true, label = '三角形', palette = 1 }
-  end,
+  on_init = initialize,
+  on_load = initialize,
   on_ui = function(ctx)
-    ctx.ui.text('三角形交互演示')
-    if ctx.ui.button('绘制模式') then
-      ctx:set_mode('draw')
-    end
-    ctx.ui.same_line()
-    if ctx.ui.button('调整模式') then
-      ctx:set_mode('edit')
-    end
+    ctx:mode_buttons()
     ctx.ui.separator()
-    ctx.ui.text(
-      ctx.mode == 'draw' and '依次点击三个点，完成后继续绘制。'
-        or '点击图形或顶点；拖动控制点，Esc 取消。'
-    )
-    ctx:parameter('线宽', 'width', 'slider', 1, 8)
-    ctx:parameter('填充', 'fill', 'checkbox')
-    ctx:parameter('标签', 'label', 'input')
-    ctx:parameter('配色', 'palette', 'combo', { '蓝色', '绿色', '橙色' })
+    ctx.ui.text('新多边形设置')
+    ctx:creation_parameter('自由顶点数', 'free', 'checkbox')
+    if not ctx.state.params.free then
+      ctx:creation_parameter('顶点数', 'vertices', 'integer', 3, 256)
+    end
+    ctx:creation_parameter('线宽', 'width', 'slider', 1, 8)
+    ctx:creation_parameter('填充', 'fill', 'checkbox')
+    ctx:creation_parameter('配色', 'palette', 'combo', { '蓝色', '绿色', '橙色' })
+    if ctx.mode == 'draw' then
+      if ctx.state.params.free then
+        ctx.ui.text('依次落点，Enter / 右键完成，Esc 取消。')
+        if ctx:drawing_count() >= 3 and ctx.ui.button('完成多边形') then
+          ctx:finish_drawing()
+        end
+      else
+        ctx.ui.text(
+          string.format(
+            '落下 %d 个顶点自动完成，可连续绘制。',
+            ctx.state.params.vertices
+          )
+        )
+      end
+      ctx.ui.text('已落点：' .. ctx:drawing_count())
+    else
+      ctx.ui.text('单击选中，拖动顶点；Delete 删除，Esc 取消。')
+    end
+    local selected = ctx:object(ctx.temp.selected)
+    if selected then
+      ctx.ui.text('选中对象顶点：' .. #selected.points)
+    end
     ctx.ui.text('对象数量：' .. #ctx.state.objects)
   end,
   on_event = function(ctx, event)
     if ctx.mode == 'edit' then
       ctx:edit_event(event)
     else
-      local colors = { { 0.35, 0.65, 1, 1 }, { 0.3, 0.85, 0.65, 1 }, { 1, 0.65, 0.3, 1 } }
-      ctx:draw_event('triangle', 3, event, {
+      ctx:draw_event('polygon', ctx.state.params.free and 0 or ctx.state.params.vertices, event, {
         color = colors[ctx.state.params.palette],
         width = ctx.state.params.width,
         fill = ctx.state.params.fill,
