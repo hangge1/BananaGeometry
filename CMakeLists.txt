@@ -44,8 +44,9 @@ target_link_libraries(drawer_core PUBLIC drawer_options)
 add_library(drawer_runtime STATIC src/runtime/session.cpp
     src/runtime/session_bindings.cpp src/runtime/detail/lua_support.cpp)
 target_link_libraries(drawer_runtime PUBLIC drawer_core PRIVATE lua)
-add_library(drawer_platform STATIC src/platform/document_io.cpp src/platform/file_dialog.cpp)
-target_link_libraries(drawer_platform PUBLIC drawer_core PRIVATE comdlg32)
+add_library(drawer_platform STATIC src/platform/document_io.cpp src/platform/file_dialog.cpp
+    src/platform/desktop_actions.cpp src/platform/preferences.cpp)
+target_link_libraries(drawer_platform PUBLIC drawer_core PRIVATE comdlg32 shell32 ole32 uuid)
 add_library(drawer_render STATIC src/render/canvas_renderer.cpp src/render/text_metrics.cpp)
 target_link_libraries(drawer_render PUBLIC drawer_core imgui)
 add_library(drawer_app STATIC src/app/application.cpp src/app/canvas_view.cpp src/app/lua_ui.cpp

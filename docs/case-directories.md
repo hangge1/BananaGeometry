@@ -29,3 +29,5 @@
 “编辑当前脚本”打开当前画布绑定的 `main.lua`，即使列表已经切换到其他目录，也不会打开同名副本。优先使用 Windows 的“编辑”关联；未配置时使用记事本。保存后按 F5 应用修改。
 
 编辑器启动失败时报告原因，不修改画布、历史或文件。目录选择、偏好持久化和编辑器启动各自位于独立模块，并通过可替换的桌面操作接口验证取消、失败与路径绑定行为。
+
+原生接口参考 Microsoft 的[目录选择对话框](https://learn.microsoft.com/en-us/windows/win32/shell/common-file-dialog)和[编辑动作](https://learn.microsoft.com/en-us/windows/win32/shell/launch)说明。
