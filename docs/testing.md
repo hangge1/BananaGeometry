@@ -4,7 +4,7 @@
 
 ## 测试组织与覆盖
 
-Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断言，CTest 自动发现测试。默认共 **37 项**：36 个单元/运行时行为用例及一个实际窗口检查；启用 Google Benchmark **1.10.0** 后增加性能入口检查，共 **38 项**。没有百分比覆盖门槛。
+Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断言，CTest 自动发现测试。默认共 **45 项**：44 个单元/运行时/画布输入行为用例及一个实际窗口检查；启用 Google Benchmark **1.10.0** 后增加性能入口检查，共 **46 项**。没有百分比覆盖门槛。
 
 | 文件 / 标签 | 行为覆盖 |
 | --- | --- |
@@ -13,6 +13,8 @@ Catch2 **3.16.1** 提供独立用例、参数化、Section、异常及浮点断�
 | `tests/view_test.cpp` / `[view]` | 数学坐标往返、缩放锚点、平移、线段距离 |
 | `tests/document_test.cpp` / `[document]` | 中文路径、可编辑数据往返、视图恢复、版本及结构拒绝、失败写入保护、自定义对象 |
 | `tests/session_test.cpp` / `[lua]` | 连续绘制、实例隔离、拖拽合并、取消、回滚、指令预算、控件事务、示例、模块和失败重载 |
+| `tests/interaction_test.cpp` / `[interaction]`、`[text]` | 标准/自定义对象高亮、控制点、样式隔离、文本范围、缩放、抓取偏移、空点击、取消、撤销重做、前后顺序和无效测量 |
+| `tests/canvas_view_test.cpp` / `[app]`、`[render]` | 实际 ImGui 字体和鼠标事件链；多行中文、字面 `##`、两组缩放及两组字体比例下的文本拾取和拖动 |
 | `tests/lua/` | 通过真实嵌入式运行时执行几何及事务规格，失败保留脚本文件名 |
 | `window_smoke` / `integration` | Win32 窗口、D3D11 或 WARP、实际用例与绘图；运行 12 帧并正常退出 |
 | `benchmark_smoke` / `performance` | 可选；确认性能场景实际运行并输出测量，无固定耗时门槛 |
@@ -39,12 +41,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Configuration Rel
 
 对文档编码、解码、历史提交、Lua 绘图提取、未命中扫描各测 100/1000 个对象，每组重复三次。准备和计时边界见 [benchmarks/README.md](../benchmarks/README.md)。使用实际经过时间；JSON 包含机器信息、原始数据和聚合统计，保存到 `build/windows/benchmark-Release.json`。脚本检查空报告和 `SkipWithError`，普通 CI 不使用机器相关时间阈值。
 
-本机一次 Release 测量中，1000 个对象的中位时间约为：编码 12.2 ms、解码 13.8 ms、历史提交 8.38 ms、Lua 绘图提取 4.03 ms、未命中扫描 3.58 ms。该样本来自 16 逻辑处理器环境、每组至少 0.1 秒计时；用于复现和比较，不代表 GPU 帧率或性能承诺。
+此前一次 Release 测量中，1000 个对象的中位时间约为：编码 12.2 ms、解码 13.8 ms、历史提交 8.38 ms、Lua 绘图提取 4.03 ms、未命中扫描 3.58 ms。该历史样本来自 16 逻辑处理器环境、每组至少 0.1 秒计时；用于复现和比较，不代表 GPU 帧率或性能承诺。最新运行结果以构建目录中的 JSON 为准。
 
 ## 已执行的本地检查
 
 - 格式及模块边界检查通过；故意注入反向 include 和反向 CMake 依赖时均被拒绝，源文件已恢复。
-- 重构后的 Debug 一键构建及 **37/37** CTest 通过；Release 构建及 **38/38** CTest 通过。
+- 调整模式优化后，Debug 构建及 **46/46** CTest 通过；Release `-Benchmarks -Package` 一键流程 **46/46** 通过，包含性能入口。
+- 画布输入测试使用真实 ImGui 字体及事件，字体比例变化模拟字体尺寸差异；不等同于物理跨屏 DPI 验收。
+- 在隔离的截图目录为 Gallery 指定选中对象，检查了矩形高亮/控制点及中文文本高亮框，保存 `build/selection-shape.png`、`build/selection-text.png`。发布用例没有预设选择。
 - Google Benchmark 10 组输入各重复三次，报告无错误；单独验证性能入口确实输出测量。
 - 单独关闭 `BUILD_TESTING`、`DRAWER_BUILD_BENCHMARKS`，复用离线运行依赖缓存完成生产构建；配置中无测试或性能框架目标。
 - 当前生产安装目录独立执行 `--smoke-test` 成功；只包含应用可执行文件和运行所需脚本、文档、许可证，不安装测试或性能程序。
