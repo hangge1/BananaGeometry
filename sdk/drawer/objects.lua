@@ -68,6 +68,33 @@ function M.attach(ctx, host)
       color = color or { 0.8, 0.85, 0.95, 1 },
     })
   end
+  --- Draws temporary selection feedback without changing persistent styles.
+  --- Custom draw callbacks keep using the public drawing helpers.
+  ---@param object DrawerObject
+  function ctx:highlight(object)
+    local painter = setmetatable({}, { __index = self })
+    function painter:emit(shape)
+      local overlay = ctx.copy(shape)
+      overlay.color = { 1, 0.82, 0.25, 1 }
+      overlay.width = (shape.width or 2) + 2
+      overlay.fill = false
+      if shape.kind == 'point' then
+        overlay.radius = (shape.radius or 5) + 2
+      end
+      host.emit(overlay)
+    end
+    function painter:draw_batch(shapes)
+      for _, shape in ipairs(shapes) do
+        self:emit(shape)
+      end
+    end
+    local custom = self.types[object.kind]
+    if custom and custom.draw then
+      custom.draw(painter, object)
+    else
+      painter:emit(object)
+    end
+  end
   ---@param object DrawerObject
   ---@param p DrawerPoint
   ---@param tolerance number World units, normally derived from pixel tolerance.

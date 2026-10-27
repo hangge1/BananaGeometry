@@ -108,6 +108,7 @@ function M.attach(ctx)
   function ctx:render_interaction()
     local object = self:object(self.temp.selected)
     if object then
+      self:highlight(object)
       local handles = self:handles(object)
       if object.kind == 'bezier' then
         for i = 2, #handles do
@@ -115,7 +116,8 @@ function M.attach(ctx)
         end
       end
       for i, p in ipairs(handles) do
-        self:point(p)
+        self:point(p, { 0.05, 0.09, 0.15, 1 }, 7)
+        self:point(p, { 1, 0.82, 0.25, 1 }, 5)
         self:text({ x = p.x + 10 / self.zoom, y = p.y + 12 / self.zoom }, tostring(i))
       end
     end
