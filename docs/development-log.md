@@ -181,3 +181,8 @@
 - Debug 一键流程 37/37 通过；完整 Release `-Benchmarks` 一键流程 38/38 通过，10 组性能输入各重复三次并成功导出 JSON。
 - 在全新 `build/production` 中关闭单元和性能选项，复用仅 ImGui/Lua 的离线缓存，独立 Release 构建通过；解决方案无 Catch2、Google Benchmark 或测试程序目标。
 - 既有 `AGENTS.md` 保持原样；项目外 skill 未使用。人工窗口交互、系统对话框、跨屏 DPI 及远程 CI 仍未宣称通过。
+
+### 发布目录复核
+
+- 生产安装目录独立执行 `--smoke-test` 成功；可执行文件为 1,221,632 字节，目录中没有测试程序、第三方 DLL 或开发库。
+- 将性能说明文档单独安装到 `benchmarks/README.md`，保证 README 和测试说明在发布目录中的相对链接有效，不安装性能框架或测试源码。

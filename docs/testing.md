@@ -47,6 +47,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Configuration Rel
 - 重构后的 Debug 一键构建及 **37/37** CTest 通过；Release 构建及 **38/38** CTest 通过。
 - Google Benchmark 10 组输入各重复三次，报告无错误；单独验证性能入口确实输出测量。
 - 单独关闭 `BUILD_TESTING`、`DRAWER_BUILD_BENCHMARKS`，复用离线运行依赖缓存完成生产构建；配置中无测试或性能框架目标。
+- 当前生产安装目录独立执行 `--smoke-test` 成功；只包含应用可执行文件和运行所需脚本、文档、许可证，不安装测试或性能程序。
 - 首版已执行依赖新缓存下载、哈希验证、离线配置和发布目录独立启动。截图确认中文和各类图元；历史结果与提交验证见[开发日志](development-log.md)和[增量版本](version-history.md)。
 
 GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档；尚未推送执行，未取得远程 CI 结果。
