@@ -57,3 +57,17 @@
 单元测试采用 Catch2，性能测试采用 Google Benchmark，统一由 CMake 配置；两者属于开发依赖，不进入发布程序。CTest 保留为运行和报告入口。Lua 行为通过实际嵌入式引擎测试，并提供可独立维护的 Lua 测试脚本。
 
 单元测试描述可观察行为，使用独立 fixture、参数化数据和异常断言，禁止依赖执行顺序或共享临时文件。性能测试独立于正确性测试，区分准备工作与计时区间，导出机器信息、重复测量和 JSON 结果，不以固定机器阈值作为普通 CI 的通过条件。
+
+### 本地检查
+
+固定工具版本为 clang-format **19.1.5**、StyLua **2.6.0**。可以使用 Visual Studio 附带的同版本 clang-format，或通过开发用 Python 环境执行 `python -m pip install clang-format==19.1.5`；这些工具不属于应用运行依赖。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/setup-stylua.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-format.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-modules.ps1
+```
+
+`check-format.ps1 -Fix` 执行格式修正并验证 Lua AST；不传 `-Fix` 时只检查。工具不在 PATH 时可传 `-ClangFormat <路径>` 或 `-StyLua <路径>`。StyLua 安装脚本从官方发行包获取并校验 SHA-256，缓存留在 `build/tools/`。
+
+模块约束同时由 CMake 的目标依赖检查及源码 include/import 检查执行，具体职责见[模块与目录](modules.md)。GitHub Actions 会运行格式检查、模块检查、CTest，并保存 JUnit 和性能 JSON；远程执行状态见测试记录。

@@ -1,0 +1,43 @@
+# 模块与目录
+
+## 原生模块
+
+依赖只能从应用流向基础能力；“边界清晰”指通过公开接口协作、明确状态所有权，不要求模块没有依赖。
+
+| 路径 / CMake 目标 | 职责与公开接口 | 可依赖的项目模块 |
+| --- | --- | --- |
+| `src/core/` / `drawer_core` | 通用值、JSON、几何与视图、历史、文档校验和编解码 | 无；仅 C++ 标准库 |
+| `src/runtime/` / `drawer_runtime` | `Session` 生命周期、独立 Lua VM、事务和事件；`detail/` 负责栈转换 | core；外部依赖 Lua |
+| `src/platform/` / `drawer_platform` | 文档原子读写、Windows 文件对话框 | core；Windows API |
+| `src/render/` / `drawer_render` | `RenderCanvas` 将图元和视图绘制到 ImGui | core；ImGui |
+| `src/app/` / `drawer_app` | 标签与命令编排、控件适配、画布输入适配 | runtime、platform、render、core |
+| `src/main.cpp` / `drawer` | 程序组合入口、Win32 窗口、D3D11 设备和后端生命周期 | app、ImGui 后端、系统图形 API |
+
+原生实现按职责分文件：文档模型不读写文件，渲染器不运行用例，运行时不调用 ImGui，系统对话框不管理标签。工作区中的 `Application` 协调流程；`CanvasView` 仅借用会话处理输入；`DrawLuaWidget` 只接收与返回通用值。
+
+公共头文件声明必要契约；`runtime/detail/` 是私有实现，其他模块不得包含。新接口必须说明坐标、所有权、失效与错误规则。各会话独立拥有数据和 Lua 状态；只有桌面入口持有窗口回调所需的图形资源。
+
+## Lua 模块
+
+用例只使用 `ctx`，入口 `sdk/drawer.lua` 负责组装：
+
+| `sdk/drawer/` 文件 | 职责与边界 |
+| --- | --- |
+| `geometry.lua` | 纯计算，不读取宿主或上下文 |
+| `state.lua` | 数据复制、数组、编辑事务和清空 |
+| `objects.lua` | 对象、绘图、命中与类型注册；不读取交互临时状态 |
+| `interaction.lua` | 模式、选择、拖拽和预览；通过公开对象与事务方法协作 |
+| `ui.lua` | 控件请求和参数编辑事务 |
+
+`drawer.*` 为 SDK 保留模块名；用例的 `require('helper')` 从自身目录加载。`ctx.state` 属于文档，`ctx.temp` 属于临时交互；回滚、撤销与恢复可能替换状态表，不保留旧引用。
+
+## 支持目录
+
+- `cases/`：完整交互示例，每例以 `main.lua` 为入口；`templates/case/` 为新用例模板。
+- `tests/`：按行为拆分的 Catch2 测试、`lua/` 可执行规格、`support/` 隔离 fixture；独立 CMake 配置。
+- `benchmarks/`：独立 Google Benchmark 场景与说明，默认关闭，不复用测试内部 fixture。
+- `tools/`：格式、边界检查及性能报告脚本；`cmake/`：构建约束；`.github/workflows/`：CI。
+- `docs/`：需求、决定、规范、接口和开发日志；`third_party/`：依赖策略，源码缓存在忽略的 `build/` 中。
+- `build/`、`out/`：本地缓存与发布产物，不进入 Git。
+
+增加模块或依赖时同步更新 CMake、`tools/check-modules.ps1` 及本文。按职责拆分，避免为了行数机械切文件，也避免所有实现堆入公共工具类、全局服务或单个入口文件。
