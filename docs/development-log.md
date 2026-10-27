@@ -59,3 +59,8 @@
 
 - 提交目标：`feat: Add JSON data model and parser tests`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-2.log`。
+
+### 增量版本步骤 2
+
+- 提交目标：`feat: Add document history and view model`。
+- 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-3.log`。
