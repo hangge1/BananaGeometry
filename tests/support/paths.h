@@ -3,10 +3,13 @@
 #include <windows.h>
 
 #include <atomic>
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include "support/artifacts.h"
 #include "test_config.h"
 
 namespace drawer::testing {
@@ -20,15 +23,27 @@ class TestDirectory {
     static std::atomic<unsigned> sequence{0};
     const auto time =
         std::chrono::steady_clock::now().time_since_epoch().count();
-    path_ = std::filesystem::u8path(DRAWER_TEST_OUTPUT_DIR) /
-            ("test-" + std::to_string(GetCurrentProcessId()) + "-" +
+    char run_id[80]{};
+    const auto length = GetEnvironmentVariableA("DRAWER_VALIDATION_RUN_ID",
+                                                run_id, sizeof(run_id));
+    std::string run =
+        length > 0 && length < sizeof(run_id) ? run_id : "standalone";
+    if (!std::all_of(run.begin(), run.end(), [](unsigned char c) {
+          return std::isalnum(c) || c == '-';
+        }))
+      run = "standalone";
+    std::string name = CurrentArtifactTestName().substr(0, 48);
+    for (auto& character : name) {
+      const auto c = static_cast<unsigned char>(character);
+      character = std::isalnum(c) ? static_cast<char>(std::tolower(c)) : '-';
+    }
+    path_ = std::filesystem::u8path(DRAWER_TEST_OUTPUT_DIR) / run / "ctest" /
+            (name + "-" + std::to_string(GetCurrentProcessId()) + "-" +
              std::to_string(time) + "-" + std::to_string(++sequence));
     std::filesystem::create_directories(path_);
+    RegisterTemporaryDirectory(path_);
   }
-  ~TestDirectory() {
-    std::error_code ignored;
-    std::filesystem::remove_all(path_, ignored);
-  }
+  ~TestDirectory() = default;
   TestDirectory(const TestDirectory&) = delete;
   TestDirectory& operator=(const TestDirectory&) = delete;
   const std::filesystem::path& Path() const { return path_; }

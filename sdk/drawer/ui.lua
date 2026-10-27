@@ -2,6 +2,12 @@
 local M = {}
 
 function M.attach(ctx, host)
+  function ctx:finish_parameter()
+    if self.temp.parameter then
+      self:commit_edit()
+      self.temp.parameter = nil
+    end
+  end
   ctx.ui = {}
   for _, operation in ipairs({
     'button',
@@ -26,6 +32,9 @@ function M.attach(ctx, host)
   function ctx:parameter(label, key, kind, ...)
     local value, changed, finished = self.ui[kind](label, self.state.params[key], ...)
     if changed then
+      if self.temp.parameter and self.temp.parameter ~= key then
+        self:finish_parameter()
+      end
       if not self.temp.parameter then
         self:begin_edit('修改参数：' .. label)
         self.temp.parameter = key
@@ -48,10 +57,12 @@ function M.attach(ctx, host)
   end
   function ctx:mode_buttons()
     if self.ui.button('绘制模式') then
+      self:finish_parameter()
       self:set_mode('draw')
     end
     self.ui.same_line()
     if self.ui.button('调整模式') then
+      self:finish_parameter()
       self:set_mode('edit')
     end
   end

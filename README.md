@@ -20,6 +20,8 @@
 | [模块与目录](docs/modules.md) | 实际文件组织、模块边界、依赖方向与状态所有权 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
+| [本轮人工验收](docs/manual-acceptance.md) | 多边形、可变阶数贝塞尔及交互式 Gallery 的验收步骤 |
+| [验证工具与产物](docs/validation.md) | 可复用验证入口、场景、运行报告和临时文件管理 |
 | [增量版本记录](docs/version-history.md) | 首版分步提交与每步独立验证证据 |
 
 ## 方案摘要
@@ -60,8 +62,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 ## 快速使用
 
 - 左侧“新建实例”或顶部“新建画布”选择用例；每个标签数据独立。
-- 三角形点击三个点，贝塞尔点击四个点；切换调整模式后拖动控制点。
+- 多边形设置 3–256 个顶点，或自由落点后 Enter / 右键完成；贝塞尔设置 1–32 阶，落下阶数加一个控制点。
+- Gallery 从空画布选择图元交互绘制，可设置点数、阶数、文字、大小和样式；“插入演示图元”提供参考场景。
 - 调整模式单击图形后显示金色高亮和控制点；Gallery 的文字可在整个文字区域内按下拖动，Esc 取消。
+- 拖图形主体整体平移，拖控制点调整形状；Alt 强制平移，Shift 锁定方向，方向键微移。
 - 中键或空格+左键平移，滚轮缩放，Home 适应内容，Esc 取消，Delete 删除。
 - Ctrl+N/O/S/Z/Y：新建、加载、保存、撤销、重做；Ctrl+Shift+S 另存为。
 - 直接编辑程序旁的 `cases/<用例>/main.lua`，按 F5 重载当前实例。未保存的数据会先提示。
@@ -69,7 +73,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 
 ## 自动化验证
 
-Catch2 + CTest 包含 44 个值、历史、视图、Lua、文档、千级对象及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 75 个值、历史、视图、Lua、文档、千级对象及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
@@ -77,7 +81,7 @@ Catch2 + CTest 包含 44 个值、历史、视图、Lua、文档、千级对象�
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
 ```
 
-该命令执行 46 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 保存在 `build/windows/`。详细筛选命令和验证结果见[测试记录](docs/testing.md)，计时边界见[性能说明](benchmarks/README.md)。
+该命令执行 77 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
 
 可复现窗口检查与截图：
 

@@ -1,6 +1,7 @@
 #include <limits>
 #include <catch2/catch_test_macros.hpp>
 #include "support/session_fixture.h"
+#include "support/gallery_fixture.h"
 #include "platform/document_io.h"
 
 namespace drawer {
@@ -65,6 +66,7 @@ TEST_CASE_METHOD(testing::TriangleFixture,
 TEST_CASE("Custom objects remain editable after loading", "[document][lua]") {
   Session gallery(SourceRoot() / "sdk/drawer.lua",
                   SourceRoot() / "cases/gallery/main.lua");
+  testing::PrepareGallery(&gallery);
   Session copy(SourceRoot() / "sdk/drawer.lua",
                SourceRoot() / "cases/gallery/main.lua");
   copy.Restore(

@@ -12,20 +12,10 @@ jobs:
           python -m pip install --disable-pip-version-check clang-format==19.1.5
           if ($LASTEXITCODE -ne 0) { throw 'clang-format installation failed' }
           ./tools/setup-stylua.ps1
-      - name: Check format and module boundaries
-        run: |
-          ./tools/check-format.ps1
-          ./tools/check-modules.ps1
-      - name: Configure
-        run: cmake -S . -B build/windows -A x64 -DBUILD_TESTING=ON -DDRAWER_BUILD_BENCHMARKS=ON
-      - name: Build
-        run: cmake --build build/windows --config Release --parallel
-      - name: Test
-        run: ctest --test-dir build/windows -C Release -j 4 --output-on-failure --output-junit test-results-Release.xml
-      - name: Measure performance
-        run: ./tools/run-benchmarks.ps1
-      - name: Package
-        run: cmake --install build/windows --config Release --prefix out/Drawer
+      - name: Validate and package
+        run: ./tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package
+      - name: Check source-only portability
+        run: ./tools/validation/check-portability.ps1
       - uses: actions/upload-artifact@v4
         with:
           name: Drawer-Windows-x64
@@ -34,6 +24,10 @@ jobs:
         if: always()
         with:
           name: Quality-reports
-          path: |
-            build/windows/test-results-Release.xml
-            build/windows/benchmark-Release.json
+          path: artifacts/validation/
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Failed-validation-inputs
+          path: .tmp/validation/
+          include-hidden-files: true

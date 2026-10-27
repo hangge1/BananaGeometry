@@ -133,17 +133,28 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   HWND window = nullptr;
   bool win32_ready = false, dx_ready = false;
   int result = 0;
+  std::filesystem::path error_log;
   try {
     int argc = 0;
     auto argv = CommandLineToArgvW(GetCommandLineW(), &argc);
     bool smoke = false;
     std::filesystem::path screenshot;
+    std::filesystem::path fixture;
+    std::string case_id = "drawer.gallery";
     for (int i = 1; i < argc; ++i) {
       if (std::wstring(argv[i]) == L"--smoke-test") smoke = true;
       if (std::wstring(argv[i]) == L"--screenshot" && i + 1 < argc)
         screenshot = argv[++i];
+      if (std::wstring(argv[i]) == L"--case-id" && i + 1 < argc)
+        case_id = std::filesystem::path(argv[++i]).u8string();
+      if (std::wstring(argv[i]) == L"--fixture" && i + 1 < argc)
+        fixture = argv[++i];
+      if (std::wstring(argv[i]) == L"--error-log" && i + 1 < argc)
+        error_log = argv[++i];
     }
     LocalFree(argv);
+    if (!smoke && !fixture.empty())
+      throw std::runtime_error("--fixture requires --smoke-test");
     ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW type{sizeof(type),
                      CS_CLASSDC,
@@ -185,6 +196,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     ImGui::CreateContext();
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
+    // Fixture replays must not depend on live keyboard or mouse input.
+    if (smoke) io.SetAppAcceptingEvents(false);
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     const float dpi = ImGui_ImplWin32_GetDpiScaleForHwnd(window);
     wchar_t windows_dir[MAX_PATH]{};
@@ -212,7 +225,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     GetModuleFileNameW(nullptr, executable, 32768);
     drawer::Application app(std::filesystem::path(executable).parent_path());
     g_application = &app;
-    if (smoke && !app.SmokeCheck())
+    if (smoke && !app.SmokeCheck(case_id, fixture))
       throw std::runtime_error("Case smoke check failed");
     ShowWindow(window, SW_SHOWDEFAULT);
     UpdateWindow(window);
@@ -251,6 +264,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   } catch (const std::exception& error) {
     result = 1;
     g_application = nullptr;
+    if (!error_log.empty()) {
+      std::ofstream output(error_log, std::ios::binary);
+      output << error.what() << '\n';
+    }
     if (std::wstring(GetCommandLineW()).find(L"--smoke-test") ==
         std::wstring::npos)
       MessageBoxA(window, error.what(), "Drawer startup error",

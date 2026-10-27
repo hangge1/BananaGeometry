@@ -23,6 +23,7 @@ class Session {
   using UiCallback = std::function<std::vector<Value>(const std::string&,
                                                       const Value::Array&)>;
   using TextMeasurer = std::function<Point(const std::string&)>;
+  enum class PointerHint { kNone, kHandle, kMove };
   Session(const std::filesystem::path& sdk, const std::filesystem::path& entry);
   ~Session();
   Session(const Session&) = delete;
@@ -32,6 +33,8 @@ class Session {
   // value/changed/ended.
   bool Controls(UiCallback ui);
   bool Draw(double zoom);
+  // Transient SDK feedback; has no effect on document data or history.
+  PointerHint GetPointerHint() const;
   // Supplies the active renderer's text width/height in screen pixels.
   // Called on the session thread; unset headless sessions report zero extent.
   void SetTextMeasurer(TextMeasurer measurer) {
@@ -40,6 +43,9 @@ class Session {
   // A chunk name beginning with '@' gives Lua failures their source file path.
   bool Execute(const std::string& source,
                const std::string& chunk_name = "console");
+  // Executes a trusted UTF-8 fixture using the same budget and rollback as
+  // Execute.
+  bool ExecuteFile(const std::filesystem::path& path);
   bool Clear();
   void Undo();
   void Redo();

@@ -1,3 +1,4 @@
+param([string]$SourceRoot)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repositoryRoot = Split-Path $PSScriptRoot -Parent
@@ -10,7 +11,8 @@ $allowed = @{
     app = @('app', 'runtime', 'platform', 'render', 'core')
 }
 $violations = [System.Collections.Generic.List[string]]::new()
-$sourceRoot = Join-Path $repositoryRoot 'src'
+if (-not $SourceRoot) { $SourceRoot = Join-Path $repositoryRoot 'src' }
+$sourceRoot = (Get-Item -LiteralPath $SourceRoot).FullName
 $files = @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File |
     Where-Object { $_.Extension -in '.cpp', '.h' })
 foreach ($file in $files) {

@@ -28,6 +28,14 @@ std::vector<Value> DrawLuaWidget(const std::string& op,
   bool changed = false;
   bool finished = false;
   Value value = arg(1);
+  if (op == "slider" || op == "number" || op == "integer" || op == "input" ||
+      op == "combo") {
+    const float label_width =
+        ImGui::CalcTextSize(label.c_str(), nullptr, true).x;
+    ImGui::SetNextItemWidth(
+        std::max(60.f, ImGui::GetContentRegionAvail().x - label_width -
+                           ImGui::GetStyle().ItemInnerSpacing.x));
+  }
   if (op == "button") {
     changed = ImGui::Button(label.c_str());
     return {changed, changed, changed};

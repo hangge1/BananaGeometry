@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scenes": [
+    {"id": "polygon-selection", "case_id": "drawer.triangle", "fixture": "polygon-selection.lua"},
+    {"id": "bezier-degree-5", "case_id": "drawer.bezier", "fixture": "bezier-degree-5.lua"},
+    {"id": "gallery-empty", "case_id": "drawer.gallery", "fixture": "gallery-empty.lua"},
+    {"id": "gallery-reference", "case_id": "drawer.gallery", "fixture": "gallery-reference.lua"},
+    {"id": "text-selection", "case_id": "drawer.gallery", "fixture": "text-selection.lua"},
+    {"id": "object-translation", "case_id": "drawer.triangle", "fixture": "object-translation.lua"}
+  ]
+}

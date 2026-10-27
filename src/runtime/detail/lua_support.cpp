@@ -6,13 +6,16 @@
 #include <stdexcept>
 
 namespace drawer::lua_detail {
-int LoadFile(lua_State* state, const std::filesystem::path& path) {
+std::string ReadScript(const std::filesystem::path& path) {
   std::ifstream input(path, std::ios::binary);
   if (!input)
     throw std::runtime_error("Cannot open Lua script: " + path.u8string());
   if (std::filesystem::file_size(path) > 1024 * 1024)
     throw std::runtime_error("Script exceeds 1 MiB");
-  std::string source((std::istreambuf_iterator<char>(input)), {});
+  return std::string((std::istreambuf_iterator<char>(input)), {});
+}
+int LoadFile(lua_State* state, const std::filesystem::path& path) {
+  const auto source = ReadScript(path);
   auto name = "@" + path.u8string();
   return luaL_loadbufferx(state, source.data(), source.size(), name.c_str(),
                           "t");

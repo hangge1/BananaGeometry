@@ -11,6 +11,7 @@
 #include "imgui.h"
 #include "render/text_metrics.h"
 #include "support/session_fixture.h"
+#include "support/gallery_fixture.h"
 
 namespace drawer {
 namespace {
@@ -25,11 +26,13 @@ struct CanvasFixture {
   Point text_size;
 
   CanvasFixture() {
+    testing::PrepareGallery(&session);
     auto& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     io.DisplaySize = {1000, 760};
     io.DeltaTime = 1.f / 60;
     io.ConfigInputTrickleEventQueue = false;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // Match the application's CJK font when available, with only test glyphs.
     wchar_t system_root[MAX_PATH]{};
     if (GetWindowsDirectoryW(system_root, MAX_PATH)) {
@@ -46,11 +49,13 @@ struct CanvasFixture {
     REQUIRE(io.Fonts->Build());
   }
 
-  void Frame(Point pointer = {-1000, -1000}, bool pressed = false) {
+  void Frame(Point pointer = {-1000, -1000}, bool pressed = false,
+             bool shift = false) {
     auto& io = ImGui::GetIO();
     io.AddMousePosEvent(static_cast<float>(pointer.x),
                         static_cast<float>(pointer.y));
     io.AddMouseButtonEvent(0, pressed);
+    io.AddKeyEvent(ImGuiMod_Shift, shift);
     ImGui::NewFrame();
     ImGui::SetNextWindowPos({0, 0});
     ImGui::SetNextWindowSize(io.DisplaySize);
@@ -109,6 +114,59 @@ TEST_CASE_METHOD(
   CHECK(ImGui::GetDrawData()->TotalVtxCount > 0);
   session.Undo();
   CHECK(session.State() == before);
+}
+TEST_CASE_METHOD(CanvasFixture,
+                 "Canvas captures whole object drags beyond its edges",
+                 "[app][translation]") {
+  const bool outside = GENERATE(false, true);
+  const double zoom = GENERATE(.5, 2.);
+  session.view.zoom = zoom;
+  const auto before = session.State();
+  Frame();
+  const auto pointer = Screen({160, 100});
+  Frame(pointer);
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_ResizeAll);
+  Frame(pointer, true);
+  const Point moved{outside ? 1200 : pointer.x + 40, pointer.y + 24};
+  Frame(moved, true);
+  Frame(moved);
+  REQUIRE_FALSE(session.Editing());
+  auto expected = before;
+  for (auto& point : expected["objects"].Items()[2]["points"].Items()) {
+    point["x"] = point.At("x").Number() + (moved.x - pointer.x) / zoom;
+    point["y"] = point.At("y").Number() - 24 / zoom;
+  }
+  CHECK(session.State() == expected);
+  CHECK(session.view.center.x == 0);
+  CHECK(session.view.center.y == 0);
+  CHECK(session.GetHistory().Count() == 1);
+}
+TEST_CASE_METHOD(CanvasFixture,
+                 "Canvas keyboard nudges respect selection and navigation",
+                 "[app][translation]") {
+  Frame();
+  const auto pointer = Screen({160, 100});
+  Frame(pointer);
+  Frame(pointer, true);
+  Frame(pointer);
+  const double before = session.State()
+                            .At("objects")
+                            .Items()[2]
+                            .At("points")
+                            .Items()[0]
+                            .At("x")
+                            .Number();
+  ImGui::GetIO().AddKeyEvent(ImGuiKey_RightArrow, true);
+  Frame(pointer);
+  CHECK(session.State()
+            .At("objects")
+            .Items()[2]
+            .At("points")
+            .Items()[0]
+            .At("x")
+            .Number() == before + 1);
+  ImGui::GetIO().AddKeyEvent(ImGuiKey_RightArrow, false);
+  Frame(pointer);
 }
 }  // namespace
 }  // namespace drawer

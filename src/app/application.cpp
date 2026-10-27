@@ -176,7 +176,8 @@ void Application::Controls(Session* session) {
   ImGui::TextWrapped("重做：%s", session->GetHistory().RedoLabel().c_str());
   ImGui::Spacing();
   ImGui::TextWrapped(
-      "左键：用例交互\n中键拖动 / "
+      "调整模式：拖图形整体平移，拖控制点调整\nAlt+拖动：强制整体移动\nShift+"
+      "拖动：水平/垂直约束\n方向键：微移，Shift 加速\n中键拖动 / "
       "空格+"
       "左键：平移\n滚轮：以鼠标为中心缩放\nHome：适应内容\nEsc：取消当前操作\nD"
       "elete：删除选中对"
@@ -300,17 +301,21 @@ void Application::Frame() {
   Confirm();
   ImGui::End();
 }
-bool Application::SmokeCheck() {
+bool Application::SmokeCheck(const std::string& case_id,
+                             const std::filesystem::path& fixture) {
   if (cases_.size() < 3 || !Active()) return false;
   for (const auto& info : cases_) {
     Session test(root_ / "sdk/drawer.lua", info.entry);
     if (!test.Controls({}) || !test.Draw(1)) return false;
   }
   for (const auto& info : cases_)
-    if (info.id == "drawer.gallery") {
-      New(info.entry);
+    if (info.id == case_id) {
+      if (!Active() || Active()->Id() != case_id) New(info.entry);
       break;
     }
+  if (!Active() || Active()->Id() != case_id) return false;
+  if (!fixture.empty() && !Active()->ExecuteFile(fixture))
+    throw std::runtime_error(Active()->Error());
   return true;
 }
 }  // namespace drawer

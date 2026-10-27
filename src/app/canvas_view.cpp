@@ -53,7 +53,8 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
       send("down", "", 1);
     if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
       send("down", "", 2);
-    if ((hovered || session->Editing()) && (io.MouseDelta.x || io.MouseDelta.y))
+    if ((hovered || session->Editing()) &&
+        (io.MouseDelta.x || io.MouseDelta.y || io.MouseWheel))
       send("move");
     if ((hovered || session->Editing()) &&
         ImGui::IsMouseReleased(ImGuiMouseButton_Left))
@@ -76,7 +77,10 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
         std::transform(
             name.begin(), name.end(), name.begin(),
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        if (ImGui::IsKeyPressed(key, false)) send("key", name.c_str());
+        const bool arrow = key == ImGuiKey_LeftArrow ||
+                           key == ImGuiKey_RightArrow ||
+                           key == ImGuiKey_UpArrow || key == ImGuiKey_DownArrow;
+        if (ImGui::IsKeyPressed(key, arrow)) send("key", name.c_str());
         if (ImGui::IsKeyReleased(key)) send("key_up", name.c_str());
       }
     if (ImGui::IsKeyPressed(ImGuiKey_Home))
@@ -84,6 +88,20 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
   }
   session->Draw(session->view.zoom);
   RenderCanvas(session->view, session->DrawItems(), origin, size);
+  if (input && (hovered || session->Editing())) {
+    const auto hint = session->GetPointerHint();
+    if (pan || hint == Session::PointerHint::kMove)
+      ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
+    else if (hint == Session::PointerHint::kHandle)
+      ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    if (hovered && !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
+        ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
+      if (hint == Session::PointerHint::kMove)
+        ImGui::SetTooltip("拖动图形：整体平移\nShift：水平/垂直；方向键：微移");
+      else if (hint == Session::PointerHint::kHandle)
+        ImGui::SetTooltip("拖动控制点：修改形状\nAlt+拖动：整体平移");
+    }
+  }
   if (session->State().At("objects").Items().empty()) {
     ImGui::GetWindowDrawList()->AddText({origin.x + 20, origin.y + 18},
                                         IM_COL32(140, 160, 185, 255),

@@ -37,6 +37,27 @@ function M.attach(ctx, host)
     end
     return object.points or {}
   end
+  function ctx:can_translate(object)
+    local custom = self.types[object.kind]
+    return (custom and custom.translate ~= nil) or #(object.points or {}) > 0
+  end
+  --- Translates all geometry from an optional immutable baseline, preserving style.
+  --- Call inside an edit. Custom non-point data can implement translate(ctx,object,delta,source).
+  ---@param object DrawerObject
+  ---@param delta DrawerPoint World-coordinate displacement.
+  ---@param source? DrawerObject Original object; repeated previews do not accumulate error.
+  function ctx:translate_object(object, delta, source)
+    assert(self:can_translate(object), 'Object does not support translation')
+    source = source or self.copy(object)
+    local custom = self.types[object.kind]
+    if custom and custom.translate then
+      custom.translate(self, object, delta, source)
+      return
+    end
+    for i, point in ipairs(source.points) do
+      object.points[i] = { x = point.x + delta.x, y = point.y + delta.y }
+    end
+  end
   function ctx:emit(shape)
     host.emit(shape)
   end
@@ -209,6 +230,21 @@ function M.attach(ctx, host)
       return inside
     end
     return false
+  end
+  --- Editing uses closed interiors as grab areas even when the object is unfilled.
+  --- Custom hit callbacks retain their own selection policy.
+  function ctx:hit_body(object, p, tolerance)
+    local custom = self.types[object.kind]
+    local closed = object.kind == 'triangle'
+      or object.kind == 'polygon'
+      or object.kind == 'rect'
+      or object.kind == 'circle'
+      or object.kind == 'ellipse'
+    if closed and not (custom and custom.hit) then
+      local area = setmetatable({ fill = true }, { __index = object })
+      return self:hit(area, p, tolerance)
+    end
+    return self:hit(object, p, tolerance)
   end
   function ctx:draw_object(object)
     local custom = self.types[object.kind]

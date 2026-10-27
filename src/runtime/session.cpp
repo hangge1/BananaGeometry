@@ -126,6 +126,25 @@ Session::~Session() {
   if (lua_) lua_close(lua_);
 }
 
+Session::PointerHint Session::GetPointerHint() const {
+  const int top = lua_gettop(lua_);
+  PointerHint result = PointerHint::kNone;
+  lua_rawgeti(lua_, LUA_REGISTRYINDEX, context_);
+  lua_pushliteral(lua_, "temp");
+  lua_rawget(lua_, -2);
+  if (lua_istable(lua_, -1)) {
+    lua_pushliteral(lua_, "pointer_hint");
+    lua_rawget(lua_, -2);
+    if (lua_type(lua_, -1) == LUA_TSTRING) {
+      const std::string value = lua_tostring(lua_, -1);
+      if (value == "handle") result = PointerHint::kHandle;
+      if (value == "move") result = PointerHint::kMove;
+    }
+  }
+  lua_settop(lua_, top);
+  return result;
+}
+
 Value Session::ReadState() const {
   int top = lua_gettop(lua_);
   try {
@@ -224,6 +243,15 @@ bool Session::Execute(const std::string& source,
     SetState(history_.Current());
   }
   return ok;
+}
+bool Session::ExecuteFile(const std::filesystem::path& path) {
+  try {
+    return Execute(lua_detail::ReadScript(path), "@" + path.u8string());
+  } catch (const std::exception& error) {
+    error_ = error.what();
+    Cancel();
+    return false;
+  }
 }
 void Session::Cancel() {
   if (editing_) {

@@ -1,33 +1,34 @@
 param(
     [ValidateSet('Debug', 'Release')][string]$Configuration = 'Debug',
     [switch]$Package,
-    [switch]$Benchmarks
+    [switch]$Benchmarks,
+    [string]$BuildDirectory = 'build/windows',
+    [string]$RunId
 )
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'tools/validation/common.psm1') -Force
+$context = New-ValidationContext -Task "build-$($Configuration.ToLowerInvariant())" -RunId $RunId
+$status = 'failed'
+$previousRun = $env:DRAWER_VALIDATION_RUN_ID
 Push-Location $PSScriptRoot
 try {
-    if ($Benchmarks -and $Configuration -ne 'Release') {
-        throw 'Use -Configuration Release for performance measurements'
-    }
-    & powershell -NoProfile -ExecutionPolicy Bypass -File tools/check-modules.ps1
-    if ($LASTEXITCODE -ne 0) { throw 'Module boundary check failed' }
+    if ($Benchmarks -and $Configuration -ne 'Release') { throw 'Use -Configuration Release for performance measurements' }
+    $env:DRAWER_VALIDATION_RUN_ID = $context.RunId
     $benchmarkOption = if ($Benchmarks) { 'ON' } else { 'OFF' }
-    & cmake -S . -B build/windows -G 'Visual Studio 17 2022' -A x64 `
-        -DBUILD_TESTING=ON "-DDRAWER_BUILD_BENCHMARKS=$benchmarkOption"
-    if ($LASTEXITCODE -ne 0) { throw 'CMake configure failed' }
-    & cmake --build build/windows --config $Configuration --parallel
-    if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
-    & ctest --test-dir build/windows -C $Configuration -j 4 --output-on-failure `
-        --output-junit "test-results-$Configuration.xml"
-    if ($LASTEXITCODE -ne 0) { throw 'Tests failed' }
+    Invoke-ValidationCommand $context 'modules' powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/check-modules.ps1') | Out-Null
+    Invoke-ValidationCommand $context 'configure' cmake @('-S', '.', '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DBUILD_TESTING=ON', "-DDRAWER_BUILD_BENCHMARKS=$benchmarkOption") | Out-Null
+    Invoke-ValidationCommand $context 'build' cmake @('--build', $BuildDirectory, '--config', $Configuration, '--parallel') | Out-Null
+    $report = Join-Path $context.ArtifactDirectory "junit-$($Configuration.ToLowerInvariant()).xml"
+    Invoke-ValidationCommand $context 'ctest' ctest @('--test-dir', $BuildDirectory, '-C', $Configuration, '-j', '4', '--output-on-failure', '--output-junit', $report) | Out-Null
     if ($Benchmarks) {
-        & powershell -NoProfile -ExecutionPolicy Bypass -File tools/run-benchmarks.ps1
-        if ($LASTEXITCODE -ne 0) { throw 'Performance measurements failed' }
+        Invoke-ValidationCommand $context 'measure' powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/run-benchmarks.ps1', '-Executable', "$BuildDirectory/bin/Release/drawer_benchmarks.exe", '-RunId', $context.RunId) | Out-Null
     }
     if ($Package) {
-        & cmake --install build/windows --config $Configuration --prefix out/Drawer
-        if ($LASTEXITCODE -ne 0) { throw 'Install failed' }
+        Invoke-ValidationCommand $context 'install' cmake @('--install', $BuildDirectory, '--config', $Configuration, '--prefix', 'out/Drawer') | Out-Null
     }
+    $status = 'passed'
 } finally {
+    $env:DRAWER_VALIDATION_RUN_ID = $previousRun
     Pop-Location
+    Complete-ValidationContext $context $status
 }

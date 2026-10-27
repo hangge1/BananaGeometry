@@ -17,6 +17,8 @@
 
 `render/text_metrics.*` 测量当前渲染字体，`CanvasView` 通过 `Session::SetTextMeasurer` 注入像素尺寸回调；Lua 对象模块将尺寸换算为世界坐标边界。运行时不包含字体或界面 API，选择覆盖层不写入文档。
 
+交互模块通过 `Session::GetPointerHint` 提供语义提示，由 `CanvasView` 映射光标；运行时不持有界面状态。`Session::ExecuteFile` 负责可信验证夹具的受限执行，`Application::SmokeCheck` 负责用例选择，桌面入口仅处理参数与图像捕获。
+
 公共头文件声明必要契约；`runtime/detail/` 是私有实现，其他模块不得包含。新接口必须说明坐标、所有权、失效与错误规则。各会话独立拥有数据和 Lua 状态；只有桌面入口持有窗口回调所需的图形资源。
 
 ## Lua 模块
@@ -28,7 +30,8 @@
 | `geometry.lua` | 纯计算，不读取宿主或上下文 |
 | `state.lua` | 数据复制、数组、编辑事务和清空 |
 | `objects.lua` | 对象、绘图、命中与类型注册；不读取交互临时状态 |
-| `interaction.lua` | 模式、选择、拖拽和预览；通过公开对象与事务方法协作 |
+| `interaction.lua` | 模式、选择、控制点调整、整体平移和选择反馈 |
+| `drawing.lua` | 固定/自由落点、完成、取消和构造预览；通过公开对象 API 绘制 |
 | `ui.lua` | 控件请求和参数编辑事务 |
 
 `drawer.*` 为 SDK 保留模块名；用例的 `require('helper')` 从自身目录加载。`ctx.state` 属于文档，`ctx.temp` 属于临时交互；回滚、撤销与恢复可能替换状态表，不保留旧引用。
@@ -36,10 +39,13 @@
 ## 支持目录
 
 - `cases/`：完整交互示例，每例以 `main.lua` 为入口；`templates/case/` 为新用例模板。
-- `tests/`：按行为拆分的 Catch2 测试、`lua/` 可执行规格、`support/` 隔离 fixture；独立 CMake 配置。
+
+- `tests/`：按行为拆分的 Catch2 测试、`lua/` 可执行规格；`scenarios/` 为可重放场景，`support/artifacts.*` 由 Catch2 listener 管理夹具成功清理和失败保留；独立 CMake 配置。
 - `benchmarks/`：独立 Google Benchmark 场景与说明，默认关闭，不复用测试内部 fixture。
-- `tools/`：格式、边界检查及性能报告脚本；`cmake/`：构建约束；`.github/workflows/`：CI。
+- `tools/`：格式、边界、性能脚本和 `validate.ps1` 总入口；`validation/` 管理证据、场景捕获及检查器自检；`cmake/`：构建约束；`.github/workflows/`：复用本地入口的 CI。
 - `docs/`：需求、决定、规范、接口和开发日志；`third_party/`：依赖策略，源码缓存在忽略的 `build/` 中。
-- `build/`、`out/`：本地缓存与发布产物，不进入 Git。
+- `build/`：构建树及缓存；`out/`：发布产物；`artifacts/validation/`：验证证据；`.tmp/validation/`：临时输入和失败夹具，均不进入 Git。
+
+Gallery 内部分为 `main.lua`（控件与事件）、`catalog.lua`（种类和自定义行为）、`sample_scene.lua`（可选参考场景），默认空白并由用户交互创建。原 `triangle/` 目录保留，显示名为多边形，维持旧文档标识。
 
 增加模块或依赖时同步更新 CMake、`tools/check-modules.ps1` 及本文。按职责拆分，避免为了行数机械切文件，也避免所有实现堆入公共工具类、全局服务或单个入口文件。

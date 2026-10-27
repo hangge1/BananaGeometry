@@ -40,7 +40,8 @@ return {
       end
       ctx.ui.text('已落点：' .. ctx:drawing_count())
     else
-      ctx.ui.text('单击选中，拖动顶点；Delete 删除，Esc 取消。')
+      ctx.ui.text('拖动图形整体平移；拖动顶点调整。')
+      ctx.ui.text('Alt 强制平移，Shift 锁定方向；Esc 取消。')
     end
     local selected = ctx:object(ctx.temp.selected)
     if selected then

@@ -28,7 +28,7 @@ return {
     if ctx.mode == 'draw' then
       ctx.ui.text('已落点：' .. ctx:drawing_count() .. '；Esc 取消。')
     else
-      ctx.ui.text('选中后拖动控制点，显示控制多边形。')
+      ctx.ui.text('拖曲线整体平移，拖控制点调整；Shift 锁定方向。')
     end
     ctx:parameter('采样点数', 'samples', 'integer', 2, 256)
     local selected = ctx:object(ctx.temp.selected)

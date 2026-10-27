@@ -11,6 +11,7 @@
 // Private stack conversion and callback adapter; never included by clients.
 namespace drawer::lua_detail {
 int LoadFile(lua_State* state, const std::filesystem::path& path);
+std::string ReadScript(const std::filesystem::path& path);
 std::string Text(lua_State* state, int index);
 Value ReadLua(lua_State* state, int index);
 void MarkArray(lua_State* state);

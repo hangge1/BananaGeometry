@@ -18,6 +18,13 @@ function Resolve-Formatter([string]$ExplicitPath, [string]$Name, [string]$Fallba
 Push-Location $repositoryRoot
 try {
     $vsFormatter = Join-Path ${env:ProgramFiles} 'Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/bin/clang-format.exe'
+    if (-not (Test-Path -LiteralPath $vsFormatter)) {
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+        if (Test-Path -LiteralPath $vswhere) {
+            $candidates = @(& $vswhere -latest -products '*' -find 'VC/Tools/Llvm/bin/clang-format.exe')
+            if ($candidates.Count) { $vsFormatter = $candidates[0] }
+        }
+    }
     $ClangFormat = Resolve-Formatter $ClangFormat 'clang-format' $vsFormatter
     $StyLua = Resolve-Formatter $StyLua 'stylua' (Join-Path $repositoryRoot 'build/tools/stylua-2.6.0/stylua.exe')
     $clangVersion = & $ClangFormat --version
@@ -34,12 +41,12 @@ try {
     if ($Fix) {
         & $ClangFormat -i @cppFiles
         if ($LASTEXITCODE -ne 0) { throw 'C++ formatting failed' }
-        & $StyLua --verify sdk cases templates tests/lua
+        & $StyLua --verify sdk cases templates tests/lua tests/scenarios
         if ($LASTEXITCODE -ne 0) { throw 'Lua formatting or AST verification failed' }
     }
     & $ClangFormat --dry-run --Werror @cppFiles
     if ($LASTEXITCODE -ne 0) { throw 'C++ format check failed' }
-    & $StyLua --check sdk cases templates tests/lua
+    & $StyLua --check sdk cases templates tests/lua tests/scenarios
     if ($LASTEXITCODE -ne 0) { throw 'Lua format check failed' }
     Write-Output "Format checks passed ($($cppFiles.Count) C++ files and project Lua directories)."
 } finally {

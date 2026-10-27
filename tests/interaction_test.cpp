@@ -4,17 +4,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
-#include "support/session_fixture.h"
+#include "support/gallery_fixture.h"
 
 namespace drawer {
 namespace {
 using testing::ExecuteChecked;
 using testing::PointerEvent;
 
-struct GalleryFixture {
-  Session session{testing::SourceRoot() / "sdk/drawer.lua",
-                  testing::SourceRoot() / "cases/gallery/main.lua"};
-};
+using testing::GalleryFixture;
 
 bool IsHighlight(const Value& item) {
   return item.At("color") == Value::Array{1, .82, .25, 1};
@@ -28,6 +25,7 @@ TEST_CASE_METHOD(GalleryFixture,
   const auto baseline = session.DrawItems().size();
   REQUIRE(session.Event(PointerEvent("down", 160, 100)));
   ExecuteChecked(&session, "assert(ctx.temp.selected==3)");
+  REQUIRE(session.Event(PointerEvent("up", 160, 100)));
   CHECK_FALSE(session.Editing());
   REQUIRE(session.Draw(1));
   int outlines = 0;

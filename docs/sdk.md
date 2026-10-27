@@ -25,7 +25,7 @@ return {
     on_draw = function(ctx) ctx:render() end,
     -- 可选：在清空事务内处理额外数据；不要在此嵌套 ctx:edit。
     on_clear = function(ctx) ctx.state.results = nil end,
-    -- 可选：加载持久化数据后验证或恢复非持久化缓存。
+    -- 可选：加载后补齐兼容默认值、验证或恢复非持久化缓存。
     on_load = function(ctx) end,
 }
 ```
@@ -33,6 +33,8 @@ return {
 必填字段为 `id`、`name`、正整数 `data_version`；回调可按需要省略。`on_init` 直接初始化数据和注册自定义类型，无需为初始数据建立历史。刷新用例列表会加载定义并执行初始化以校验用例，请勿在初始化中进行外部副作用。
 
 文档通过 `id` 匹配插件，要求 `data_version` 相同，不自动迁移不兼容文档。修改显示名称不会改变文档归属。
+
+`ctx:ensure_parameters(defaults)` 在初始化或 `on_load` 中补齐缺失参数，不覆盖已有值。加载回调完成后，宿主再次校验数据并建立干净历史；回调不能遗留未提交事务。旧三角形实例显示名改为 Polygon，但保留 `drawer.triangle` 标识。
 
 `require("helper")` 加载同目录 `helper.lua`，`require("math.geometry")` 加载 `math/geometry.lua` 或 `math/geometry/init.lua`。模块缓存与可变全局变量按实例隔离。中文目录支持 UTF-8 文件名。
 
@@ -80,7 +82,7 @@ end)
 | `rect` | 两个对角点 |
 | `circle` | 圆心与圆周上一点 |
 | `ellipse` | 中心与定义 X/Y 半径的点 |
-| `bezier` | 四个三次贝塞尔控制点 |
+| `bezier` | 2–33 个控制点，对应 1–32 阶；阶数由各对象的控制点数量决定 |
 | `text` | 一个锚点；文字由 `text` 字段指定 |
 
 通用样式为 RGBA `color`（0–1）、屏幕像素 `width` 和布尔 `fill`。坐标统一 X 向右、Y 向上；首版文档约束为 ±1e12，极端缩放和超大几何并非高精度 CAD 渲染保证。
@@ -93,13 +95,29 @@ end)
 
 ## 模式、输入与编辑辅助
 
-`ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集指定数量的点击，完成后创建对象并继续下一次绘制；Esc 取消未完成点列。
+`ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集固定数量的点击，完成后创建对象并继续绘制；`count=0` 为自由多边形/折线，Enter、右键或 `ctx:finish_drawing()` 完成，至少需要 3/2 个点。上限 256 点自动完成，贝塞尔固定点数为 2–33。
+
+`ctx:drawing_count()` 返回已落点数量；`ctx:reset_drawing()` 清除未完成构造，保留其他临时状态。切换种类或点数也会清除未完成点列，Esc 取消。`ctx:render()` 显示临时图元预览及控制点；`ctx:draw_object(object)` 可复用标准或自定义对象的绘制，无需加入文档。
+
+贝塞尔渲染与拾取使用同一自适应折线，目标误差 0.75 屏幕像素，最多 1024 段以限制极端缩放的开销；纯数学求值使用 De Casteljau 方法。达到细分上限时不承诺仍满足误差目标。
 
 `ctx:edit_event(event)` 提供图形选择、控制点拖动、Esc 回滚和 Delete 删除。默认处理左键，右键留给用例自定义。
 
 选中图形叠加金色高亮，显示控制点及编号；点击空白或切换模式清除反馈。高亮不更改持久化颜色或产生历史。普通对象拖动控制点，文本可以从整个文字矩形范围直接拖动；拖拽保留按下位置与控制点的偏移，避免跳位，一次拖动只提交一步。重叠对象按绘制顺序从前向后拾取，当前选中的控制点优先响应。
 
 自定义对象的高亮复用 `draw` 回调及 `ctx:emit`、`ctx:draw_batch`、`ctx:line/point/text` 等公开助手。使用回调传入的上下文绘图；回调应只绘图，不修改文档或依赖上下文表身份。
+
+调整模式拖动图形主体整体平移，拖控制点修改形状；封闭图形内部可拾取，公开 `ctx:hit()` 仍遵循原填充规则。`ctx:hit_body()` 提供编辑主体拾取。Alt 强制整体平移，Shift 锁定水平/垂直；拖动阈值为 3 屏幕像素。方向键每步移动 1 屏幕像素，Shift 为 10 像素。
+
+`ctx:translate_object(object, delta, source?)` 在编辑事务内平移对象。默认移动全部 `points`，保持样式、半径、自定义参数及标识；可传原始快照 `source`，使连续预览始终从初始几何计算。`ctx:can_translate(object)` 判断是否支持。自定义非点数据实现 `translate(ctx, object, delta, source)`，只修改目标对象，不修改原始快照，例如：
+
+```lua
+translate = function(_, object, delta, source)
+  object.origin = { x = source.origin.x + delta.x, y = source.origin.y + delta.y }
+end
+```
+
+拖动开始、松开提交和 Esc 回滚由交互层统一处理。`Session::GetPointerHint()` 只读取瞬态反馈供宿主显示光标，不引入运行时对界面的依赖。
 
 事件包含：
 
@@ -120,12 +138,17 @@ end)
 ```lua
 ctx.ui.slider(label, value, min, max)
 ctx.ui.number(label, value, min, max)
+ctx.ui.integer(label, value, min, max) -- 整数输入，例如阶数和点数
 ctx.ui.checkbox(label, value)
 ctx.ui.input(label, value)
 ctx.ui.combo(label, index, {"选项一", "选项二"}) -- 索引从 1 开始
 ```
 
 持久化参数推荐使用 `ctx:parameter(label,key,kind,...)`，它绑定 `ctx.state.params[key]`，并将一次滑动或文本编辑组合为一个事务。参数须先在初始化中赋默认值。例如 `ctx:parameter("线宽","width","slider",1,8)`。
+
+创建设置使用 `ctx:creation_parameter(...)`，参数相同，但变化时取消未完成绘制。`ctx:mode_buttons()` 提供绘制/调整按钮；离散操作隐藏正在编辑的参数之前，可调用 `ctx:finish_parameter()` 提交该参数，避免事务跨控件混合。
+
+Gallery 的 `catalog.lua` 声明稳定种类、名称、落点数量、样式和自定义注册，`sample_scene.lua` 提供可选参考场景。新增一种图元时，在目录中添加条目并注册对应自定义对象即可进入选择器；特有参数由该用例控件设置，不需要修改宿主。
 
 ## 自定义对象与几何辅助
 

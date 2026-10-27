@@ -17,7 +17,8 @@ class Application {
   void Frame();
   void RequestExit();
   bool ShouldExit() const { return exit_; }
-  bool SmokeCheck();
+  bool SmokeCheck(const std::string& case_id = "drawer.gallery",
+                  const std::filesystem::path& fixture = {});
 
  private:
   struct CaseInfo {
