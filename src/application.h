@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DRAWER_SRC_APPLICATION_H_
+#define DRAWER_SRC_APPLICATION_H_
 
 #include <memory>
 #include <string>
@@ -7,6 +8,8 @@
 #include "session.h"
 
 namespace drawer {
+// Coordinates desktop UI and independent case tabs. Destructive actions are
+// deferred until the save/discard/cancel dialog has resolved.
 class Application {
  public:
   explicit Application(std::filesystem::path root);
@@ -48,3 +51,5 @@ class Application {
   double last_x_ = 0, last_y_ = 0;
 };
 }  // namespace drawer
+
+#endif  // DRAWER_SRC_APPLICATION_H_

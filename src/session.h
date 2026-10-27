@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DRAWER_SRC_SESSION_H_
+#define DRAWER_SRC_SESSION_H_
 
 #include <filesystem>
 #include <functional>
@@ -12,6 +13,9 @@ struct lua_State;
 struct lua_Debug;
 
 namespace drawer {
+// Owns one Lua VM, its committed data and edit history. Separate instances
+// never share mutable Lua globals. Lua callbacks run on the owning UI/test
+// thread.
 class Session {
  public:
   using UiCallback = std::function<std::vector<Value>(const std::string&,
@@ -21,6 +25,8 @@ class Session {
   Session(const Session&) = delete;
   Session& operator=(const Session&) = delete;
   bool Event(const Value& event);
+  // The callback is borrowed for this call only and returns
+  // value/changed/ended.
   bool Controls(UiCallback ui);
   bool Draw(double zoom);
   bool Execute(const std::string& source);
@@ -28,13 +34,18 @@ class Session {
   void Undo();
   void Redo();
   void Cancel();
+  // Use a fresh candidate session: an on_load callback can fail after data has
+  // been restored. The host keeps the old session until the candidate succeeds.
   void Restore(const Document& document);
+  // Returns committed data. Throws while a preview transaction is active.
   Document SaveData() const;
   void MarkSaved() { history_.MarkSaved(); }
   bool Dirty() const { return history_.Dirty() || editing_; }
   bool Editing() const { return editing_; }
-  History& GetHistory() { return history_; }
+  const History& GetHistory() const { return history_; }
+  // A committed snapshot, not the current drag preview; edits invalidate it.
   const Value& State() const { return history_.Current(); }
+  // Render data remains valid until the next Draw or session destruction.
   const std::vector<Value>& DrawItems() const { return draws_; }
   const std::string& Id() const { return id_; }
   const std::string& Name() const { return name_; }
@@ -45,6 +56,7 @@ class Session {
   std::filesystem::path file;
 
  private:
+  enum class ModeReset { kPreserve, kDefault };
   static Session* Self(lua_State* state);
   static int Begin(lua_State* state);
   static int Commit(lua_State* state);
@@ -59,7 +71,7 @@ class Session {
   bool ProtectedCall(int arguments, int results);
   void SetState(const Value& state);
   Value ReadState() const;
-  bool ResetInteraction(bool reset_mode = true);
+  bool ResetInteraction(ModeReset mode_reset = ModeReset::kDefault);
   std::filesystem::path sdk_, entry_;
   lua_State* lua_ = nullptr;
   int context_ = 0;
@@ -77,3 +89,5 @@ class Session {
 std::vector<std::filesystem::path> DiscoverCases(
     const std::filesystem::path& directory);
 }  // namespace drawer
+
+#endif  // DRAWER_SRC_SESSION_H_

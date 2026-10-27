@@ -1,12 +1,16 @@
-#pragma once
+#ifndef DRAWER_SRC_VALUE_H_
+#define DRAWER_SRC_VALUE_H_
 
 #include <map>
 #include <string>
+#include <utility>
 #include <variant>
 #include <vector>
 
 namespace drawer {
 
+// Owns a JSON-compatible value. Conversion constructors intentionally remain
+// implicit so callers can compose object and array literals without wrappers.
 class Value {
  public:
   using Array = std::vector<Value>;
@@ -32,6 +36,7 @@ class Value {
   Array& Items() { return std::get<Array>(data_); }
   const Object& Fields() const { return std::get<Object>(data_); }
   Object& Fields() { return std::get<Object>(data_); }
+  // Returns a stable null sentinel for missing keys and non-object values.
   const Value& At(const std::string& key) const;
   Value& operator[](const std::string& key) { return Fields()[key]; }
   double NumberOr(double fallback) const {
@@ -47,7 +52,11 @@ class Value {
   std::variant<std::monostate, bool, double, std::string, Array, Object> data_;
 };
 
+// These functions reject invalid UTF-8, nonfinite numbers and excessive depth.
+// ParseJson also rejects duplicate keys; neither silently repairs invalid data.
 std::string ToJson(const Value& value);
 Value ParseJson(const std::string& text);
 
 }  // namespace drawer
+
+#endif  // DRAWER_SRC_VALUE_H_

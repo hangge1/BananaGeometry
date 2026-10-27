@@ -391,11 +391,11 @@ bool Session::Call(const char* name, const Value* event) {
   }
   return ok;
 }
-bool Session::ResetInteraction(bool reset_mode) {
+bool Session::ResetInteraction(ModeReset mode_reset) {
   lua_rawgeti(lua_, LUA_REGISTRYINDEX, context_);
   lua_newtable(lua_);
   lua_setfield(lua_, -2, "temp");
-  if (reset_mode) {
+  if (mode_reset == ModeReset::kDefault) {
     lua_rawgeti(lua_, LUA_REGISTRYINDEX, definition_);
     lua_getfield(lua_, -1, "default_mode");
     if (!lua_isstring(lua_, -1)) {
@@ -451,20 +451,20 @@ void Session::Cancel() {
     editing_ = false;
     SetState(history_.Current());
   }
-  ResetInteraction(false);
+  ResetInteraction(ModeReset::kPreserve);
 }
 void Session::Undo() {
   Cancel();
   if (history_.Undo()) {
     SetState(history_.Current());
-    ResetInteraction(false);
+    ResetInteraction(ModeReset::kPreserve);
   }
 }
 void Session::Redo() {
   Cancel();
   if (history_.Redo()) {
     SetState(history_.Current());
-    ResetInteraction(false);
+    ResetInteraction(ModeReset::kPreserve);
   }
 }
 bool Session::Clear() {

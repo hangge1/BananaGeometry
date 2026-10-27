@@ -18,11 +18,15 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
                                                              LPARAM);
 namespace {
 using Microsoft::WRL::ComPtr;
+// The Win32 callback needs the active graphics resources during resize events.
+// COM ownership stays here and is released after the ImGui backends shut down.
 ComPtr<ID3D11Device> g_device;
 ComPtr<ID3D11DeviceContext> g_context;
 ComPtr<IDXGISwapChain> g_swap;
 ComPtr<ID3D11RenderTargetView> g_target;
+// Borrowed only while wWinMain's Application is alive; clear before teardown.
 drawer::Application* g_application = nullptr;
+// WM_SIZE controls rendering suspension while the window has no visible area.
 bool g_minimized = false;
 void Check(HRESULT hr, const char* operation) {
   if (FAILED(hr))
