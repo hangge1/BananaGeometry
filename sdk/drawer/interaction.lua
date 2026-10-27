@@ -3,6 +3,14 @@ local distance = require('drawer.geometry').distance
 
 local M = {}
 
+local function begin_drag(ctx, object, handle, event)
+  local anchor = ctx:handles(object)[handle]
+  ctx:begin_edit('移动控制点')
+  ctx.temp.selected, ctx.temp.drag = object.id, handle
+  -- Preserve the grab offset so clicking a label or near a grip never snaps it.
+  ctx.temp.drag_offset = { x = event.x - anchor.x, y = event.y - anchor.y }
+end
+
 function M.attach(ctx)
   function ctx:set_mode(mode)
     self:cancel_edit()
@@ -44,33 +52,33 @@ function M.attach(ctx)
         end
       end
       local handle = selected and pick(selected)
-      if not handle then
-        for i = #self.state.objects, 1, -1 do
-          local object = self.state.objects[i]
-          handle = pick(object)
-          if handle then
-            selected = object
-            break
-          end
-        end
-      end
       if handle then
-        self:begin_edit('移动控制点')
-        temp.selected, temp.drag = selected.id, handle
+        begin_drag(self, selected, handle, event)
         return
       end
       temp.selected = nil
+      -- Respect drawing order: a rear grip must not steal a foreground body hit.
       for i = #self.state.objects, 1, -1 do
-        if self:hit(self.state.objects[i], event, tolerance) then
-          temp.selected = self.state.objects[i].id
-          break
+        local object = self.state.objects[i]
+        handle = pick(object)
+        if handle then
+          begin_drag(self, object, handle, event)
+          return
+        end
+        if self:hit(object, event, tolerance) then
+          temp.selected = object.id
+          if object.kind == 'text' then
+            begin_drag(self, object, 1, event)
+          end
+          return
         end
       end
     elseif event.type == 'move' and temp.drag then
       local object = self:object(temp.selected)
       if object then
         local custom = self.types[object.kind]
-        local position = { x = event.x, y = event.y }
+        local offset = temp.drag_offset or { x = 0, y = 0 }
+        local position = { x = event.x - offset.x, y = event.y - offset.y }
         if custom and custom.move_handle then
           custom.move_handle(self, object, temp.drag, position)
         else
@@ -80,6 +88,7 @@ function M.attach(ctx)
     elseif event.type == 'up' and temp.drag then
       self:commit_edit()
       temp.drag = nil
+      temp.drag_offset = nil
     end
   end
   ---@param kind string

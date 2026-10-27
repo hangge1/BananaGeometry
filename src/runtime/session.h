@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "core/document.h"
@@ -21,6 +22,7 @@ class Session {
  public:
   using UiCallback = std::function<std::vector<Value>(const std::string&,
                                                       const Value::Array&)>;
+  using TextMeasurer = std::function<Point(const std::string&)>;
   Session(const std::filesystem::path& sdk, const std::filesystem::path& entry);
   ~Session();
   Session(const Session&) = delete;
@@ -30,6 +32,11 @@ class Session {
   // value/changed/ended.
   bool Controls(UiCallback ui);
   bool Draw(double zoom);
+  // Supplies the active renderer's text width/height in screen pixels.
+  // Called on the session thread; unset headless sessions report zero extent.
+  void SetTextMeasurer(TextMeasurer measurer) {
+    text_measurer_ = std::move(measurer);
+  }
   // A chunk name beginning with '@' gives Lua failures their source file path.
   bool Execute(const std::string& source,
                const std::string& chunk_name = "console");
@@ -67,6 +74,7 @@ class Session {
   static int Emit(lua_State* state);
   static int Ui(lua_State* state);
   static int Array(lua_State* state);
+  static int MeasureText(lua_State* state);
   static int Module(lua_State* state);
   static int Trace(lua_State* state);
   static void InstructionHook(lua_State* state, lua_Debug* debug);
@@ -87,6 +95,7 @@ class Session {
   History history_;
   std::vector<Value> draws_;
   UiCallback ui_;
+  TextMeasurer text_measurer_;
 };
 
 std::vector<std::filesystem::path> DiscoverCases(

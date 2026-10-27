@@ -1,6 +1,7 @@
 #include "runtime/session.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 #include "runtime/detail/lua_support.h"
@@ -72,6 +73,17 @@ int Session::Array(lua_State* state) {
   lua_newtable(state);
   MarkArray(state);
   return 1;
+}
+int Session::MeasureText(lua_State* state) {
+  const auto text = Text(state, 1);
+  const auto* self = Self(state);
+  const auto size = self->text_measurer_ ? self->text_measurer_(text) : Point{};
+  if (!std::isfinite(size.x) || !std::isfinite(size.y) || size.x < 0 ||
+      size.y < 0)
+    throw std::runtime_error("Text measurement must be finite and nonnegative");
+  lua_pushnumber(state, size.x);
+  lua_pushnumber(state, size.y);
+  return 2;
 }
 int Session::Module(lua_State* state) {
   auto module = Text(state, 1);

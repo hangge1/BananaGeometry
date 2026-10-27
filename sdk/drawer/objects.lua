@@ -68,6 +68,26 @@ function M.attach(ctx, host)
       color = color or { 0.8, 0.85, 0.95, 1 },
     })
   end
+  --- Returns world bounds using the renderer's actual screen-space font size.
+  --- Text grows rightward and downward from its anchor; nil for empty/unmeasured text.
+  ---@param object DrawerObject
+  ---@return DrawerTextBounds? bounds World coordinates.
+  function ctx:text_bounds(object)
+    local anchor = object.points and object.points[1]
+    if not anchor then
+      return nil
+    end
+    local width, height = host.measure_text(object.text or '')
+    if width <= 0 or height <= 0 then
+      return nil
+    end
+    return {
+      left = anchor.x,
+      right = anchor.x + width / self.zoom,
+      top = anchor.y,
+      bottom = anchor.y - height / self.zoom,
+    }
+  end
   --- Draws temporary selection feedback without changing persistent styles.
   --- Custom draw callbacks keep using the public drawing helpers.
   ---@param object DrawerObject
@@ -80,6 +100,21 @@ function M.attach(ctx, host)
       overlay.fill = false
       if shape.kind == 'point' then
         overlay.radius = (shape.radius or 5) + 2
+      end
+      if shape.kind == 'text' then
+        local bounds = ctx:text_bounds(shape)
+        if bounds then
+          local padding = 3 / ctx.zoom
+          host.emit({
+            kind = 'rect',
+            points = {
+              { x = bounds.left - padding, y = bounds.top + padding },
+              { x = bounds.right + padding, y = bounds.bottom - padding },
+            },
+            color = overlay.color,
+            width = 1.5,
+          })
+        end
       end
       host.emit(overlay)
     end
@@ -108,7 +143,17 @@ function M.attach(ctx, host)
     if #points == 0 then
       return false
     end
-    if kind == 'point' or kind == 'text' then
+    if kind == 'text' then
+      local bounds = self:text_bounds(object)
+      if bounds then
+        return p.x >= bounds.left - tolerance
+          and p.x <= bounds.right + tolerance
+          and p.y <= bounds.top + tolerance
+          and p.y >= bounds.bottom - tolerance
+      end
+      return distance(p, points[1]) <= tolerance
+    end
+    if kind == 'point' then
       return distance(p, points[1]) <= tolerance
     end
     if kind == 'circle' or kind == 'ellipse' then

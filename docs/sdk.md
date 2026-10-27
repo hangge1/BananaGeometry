@@ -87,11 +87,19 @@ end)
 
 `ctx:render()` 批量绘制标准对象、自定义对象和选择控制点。也可调用 `ctx:emit(shape)`、`ctx:draw_batch(shapes)`、`ctx:line(a,b,color,width)`、`ctx:point(p,color,radius)` 和 `ctx:text(p,text,color)` 绘制临时辅助内容，不写入文档。
 
+文本以锚点为显示矩形的左上角，字体使用宿主当前字体，字号保持屏幕像素大小。`ctx:text_bounds(object)` 返回世界坐标的 `left/right/top/bottom`；中文、多行和 `##` 按实际文字测量，`top` 大于 `bottom`。空文字或没有字体测量器时返回 `nil`，拾取仍可使用锚点。
+
+原生宿主在画布帧中注入字体测量器；独立运行 `Session` 的调用方可用 `SetTextMeasurer` 提供屏幕像素宽高，不让运行时依赖 ImGui。未配置时尺寸为零；无头测试应显式注入测量器后验证文字范围。
+
 ## 模式、输入与编辑辅助
 
 `ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集指定数量的点击，完成后创建对象并继续下一次绘制；Esc 取消未完成点列。
 
 `ctx:edit_event(event)` 提供图形选择、控制点拖动、Esc 回滚和 Delete 删除。默认处理左键，右键留给用例自定义。
+
+选中图形叠加金色高亮，显示控制点及编号；点击空白或切换模式清除反馈。高亮不更改持久化颜色或产生历史。普通对象拖动控制点，文本可以从整个文字矩形范围直接拖动；拖拽保留按下位置与控制点的偏移，避免跳位，一次拖动只提交一步。重叠对象按绘制顺序从前向后拾取，当前选中的控制点优先响应。
+
+自定义对象的高亮复用 `draw` 回调及 `ctx:emit`、`ctx:draw_batch`、`ctx:line/point/text` 等公开助手，绘制回调应只绘图，不修改文档或依赖上下文表身份。
 
 事件包含：
 

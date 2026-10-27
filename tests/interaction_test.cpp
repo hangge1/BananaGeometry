@@ -1,4 +1,8 @@
+#include <limits>
+
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include "support/session_fixture.h"
 
@@ -67,6 +71,118 @@ TEST_CASE_METHOD(GalleryFixture,
   ExecuteChecked(&session, "ctx:set_mode('draw')");
   REQUIRE(session.Draw(1));
   for (const auto& item : session.DrawItems()) CHECK_FALSE(IsHighlight(item));
+}
+
+TEST_CASE_METHOD(GalleryFixture,
+                 "Text body dragging preserves its grab offset at every zoom",
+                 "[lua][interaction][text]") {
+  const double zoom = GENERATE(.5, 1., 2., 4.);
+  session.view.zoom = zoom;
+  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  const auto before = session.State();
+  const double x = 100 + 100 / zoom;
+  const double y = -65 - 12 / zoom;
+  REQUIRE(session.Event(PointerEvent("down", x, y)));
+  REQUIRE(session.Editing());
+  ExecuteChecked(&session, "assert(ctx.temp.selected==6)");
+  // Moving at the click position must not snap the anchor to the pointer.
+  REQUIRE(session.Event(PointerEvent("move", x, y)));
+  REQUIRE(session.Draw(zoom));
+  bool preview_found = false;
+  bool outline_found = false;
+  for (const auto& item : session.DrawItems()) {
+    if (!IsHighlight(item)) continue;
+    if (item.At("kind").StringOr("") == "text") {
+      CHECK(item.At("points").Items()[0].At("x").Number() == 100);
+      CHECK(item.At("points").Items()[0].At("y").Number() == -65);
+      preview_found = true;
+    }
+    if (item.At("kind").StringOr("") == "rect") outline_found = true;
+  }
+  CHECK(preview_found);
+  CHECK(outline_found);
+  REQUIRE(session.Event(PointerEvent("move", x + 30 / zoom, y - 16 / zoom)));
+  REQUIRE(session.Event(PointerEvent("up", x + 30 / zoom, y - 16 / zoom)));
+  const auto& anchor =
+      session.State().At("objects").Items()[5].At("points").Items()[0];
+  CHECK(anchor.At("x").Number() == Catch::Approx(100 + 30 / zoom));
+  CHECK(anchor.At("y").Number() == Catch::Approx(-65 - 16 / zoom));
+  CHECK(session.GetHistory().Count() == 1);
+  const auto moved = session.State();
+  session.Undo();
+  CHECK(session.State() == before);
+  session.Redo();
+  CHECK(session.State() == moved);
+}
+
+TEST_CASE_METHOD(GalleryFixture,
+                 "Text clicks and canceled drags do not create edits",
+                 "[lua][interaction][text]") {
+  const bool escape = GENERATE(false, true);
+  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  const auto before = session.State();
+  REQUIRE(session.Event(PointerEvent("down", 200, -75)));
+  REQUIRE(session.Event(PointerEvent("up", 200, -75)));
+  CHECK(session.GetHistory().Count() == 0);
+  CHECK_FALSE(session.Dirty());
+  REQUIRE(session.Event(PointerEvent("down", 200, -75)));
+  REQUIRE(session.Event(PointerEvent("move", 250, -100)));
+  if (escape)
+    REQUIRE(session.Event(PointerEvent("key", 250, -100, "escape")));
+  else
+    session.Cancel();
+  REQUIRE(session.Event(PointerEvent("up", 250, -100)));
+  CHECK_FALSE(session.Editing());
+  CHECK(session.State() == before);
+  CHECK(session.GetHistory().Count() == 0);
+  CHECK_FALSE(session.Dirty());
+}
+
+TEST_CASE_METHOD(GalleryFixture,
+                 "Text bounds use measured pixels and mathematical coordinates",
+                 "[lua][interaction][text]") {
+  session.SetTextMeasurer([](const std::string& text) {
+    return text.empty() ? Point{} : Point{120, 40};
+  });
+  ExecuteChecked(&session, R"(
+    ctx.zoom=2
+    local label={kind='text',points={{x=100,y=-65}},text='中文\nSDK##label'}
+    local b=ctx:text_bounds(label)
+    assert(b.left==100 and b.right==160 and b.top==-65 and b.bottom==-85)
+    assert(ctx:hit(label,{x=159,y=-84},0))
+    assert(not ctx:hit(label,{x=161,y=-84},0))
+    assert(not ctx:hit(label,{x=159,y=-86},0))
+    label.text=''
+    assert(ctx:text_bounds(label)==nil)
+    assert(not ctx:hit(label,{x=159,y=-84},0))
+  )");
+}
+
+TEST_CASE_METHOD(GalleryFixture,
+                 "Foreground text is picked before an unselected rear handle",
+                 "[lua][interaction][text]") {
+  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  ExecuteChecked(&session, R"(
+    ctx:edit('overlap',function()
+      ctx.state.objects=ctx.array()
+      ctx:add('point',{{x=50,y=-10}})
+      ctx:add('text',{{x=0,y=0}},{text='foreground'})
+    end)
+  )");
+  REQUIRE(session.Event(PointerEvent("down", 50, -10)));
+  ExecuteChecked(&session,
+                 "assert(ctx:object(ctx.temp.selected).kind=='text')");
+  session.Cancel();
+}
+
+TEST_CASE_METHOD(GalleryFixture, "Invalid text measurements are rejected",
+                 "[lua][text]") {
+  const double width = GENERATE(-1., std::numeric_limits<double>::infinity());
+  session.SetTextMeasurer(
+      [width](const std::string&) { return Point{width, 20}; });
+  CHECK_FALSE(session.Execute("ctx:text_bounds(ctx.state.objects[6])"));
+  CHECK(session.Error().find("finite and nonnegative") != std::string::npos);
+  CHECK_FALSE(session.Dirty());
 }
 }  // namespace
 }  // namespace drawer

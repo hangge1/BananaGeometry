@@ -10,6 +10,13 @@
 ---@field color? number[] RGBA components in the range 0 to 1.
 ---@field width? number Stroke width in screen pixels.
 ---@field fill? boolean
+---@field text? string UTF-8 content for text objects.
+
+---@class DrawerTextBounds
+---@field left number
+---@field right number
+---@field top number Mathematical Y, above bottom.
+---@field bottom number
 
 ---@class DrawerState
 ---@field objects DrawerObject[]

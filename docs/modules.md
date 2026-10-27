@@ -15,6 +15,8 @@
 
 原生实现按职责分文件：文档模型不读写文件，渲染器不运行用例，运行时不调用 ImGui，系统对话框不管理标签。工作区中的 `Application` 协调流程；`CanvasView` 仅借用会话处理输入；`DrawLuaWidget` 只接收与返回通用值。
 
+`render/text_metrics.*` 测量当前渲染字体，`CanvasView` 通过 `Session::SetTextMeasurer` 注入像素尺寸回调；Lua 对象模块将尺寸换算为世界坐标边界。运行时不包含字体或界面 API，选择覆盖层不写入文档。
+
 公共头文件声明必要契约；`runtime/detail/` 是私有实现，其他模块不得包含。新接口必须说明坐标、所有权、失效与错误规则。各会话独立拥有数据和 Lua 状态；只有桌面入口持有窗口回调所需的图形资源。
 
 ## Lua 模块

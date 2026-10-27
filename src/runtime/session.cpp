@@ -71,7 +71,8 @@ Session::Session(const std::filesystem::path& sdk,
         {"cancel_edit", Safe<CancelEdit>},
         {"emit", Safe<Emit>},
         {"ui", Safe<Ui>},
-        {"array", Safe<Array>}};
+        {"array", Safe<Array>},
+        {"measure_text", Safe<MeasureText>}};
     for (const auto& [name, function] : functions) {
       lua_pushlightuserdata(lua_, this);
       lua_pushcclosure(lua_, function, 1);

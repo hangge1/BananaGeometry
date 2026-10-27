@@ -7,10 +7,12 @@
 
 #include "imgui.h"
 #include "render/canvas_renderer.h"
+#include "render/text_metrics.h"
 #include "runtime/session.h"
 
 namespace drawer {
 void CanvasView::Draw(Session* session, bool input_enabled) {
+  session->SetTextMeasurer(MeasureCanvasText);
   const auto origin = ImGui::GetCursorScreenPos();
   auto size = ImGui::GetContentRegionAvail();
   size.x = std::max(size.x, 1.0f);

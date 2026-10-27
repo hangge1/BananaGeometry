@@ -56,7 +56,8 @@ return {
   end,
   on_ui = function(ctx)
     ctx.ui.text('内置图元与 Lua 自定义十字对象')
-    ctx.ui.text('拖动任意控制点，Delete 删除，Esc 取消。')
+    ctx.ui.text('单击图形高亮并显示控制点；文字区域可直接拖动。')
+    ctx.ui.text('拖动控制点调整，Delete 删除，Esc 取消。')
     ctx.ui.text('保存后加载可继续编辑自定义对象。')
   end,
   on_event = function(ctx, event)
