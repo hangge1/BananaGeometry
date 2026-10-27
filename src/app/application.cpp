@@ -330,7 +330,11 @@ void Application::Frame() {
   ImGui::TextUnformatted("绘制用例");
   if (ImGui::Button("打开用例目录", {-1, 0})) OpenCaseDirectory();
   if (ImGui::Button("使用内置用例", {-1, 0})) SetCaseDirectory({});
-  ImGui::TextWrapped("目录：%s", case_directory_.u8string().c_str());
+  const auto directory_label =
+      case_directory_.parent_path().filename() / case_directory_.filename();
+  ImGui::TextWrapped("目录：%s", directory_label.u8string().c_str());
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("%s", case_directory_.u8string().c_str());
   ImGui::TextDisabled("同一用例可打开多份");
   for (const auto& item : cases_) {
     ImGui::PushID(item.id.c_str());
