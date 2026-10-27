@@ -1,0 +1,21 @@
+name: Windows build and tests
+on:
+  push:
+  pull_request:
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build/windows -A x64
+      - name: Build
+        run: cmake --build build/windows --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build/windows -C Release --output-on-failure
+      - name: Package
+        run: cmake --install build/windows --config Release --prefix out/Drawer
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Drawer-Windows-x64
+          path: out/Drawer/

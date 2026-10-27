@@ -18,6 +18,7 @@
 | [开发规则](docs/development-rules.md) | 项目内 skill、Git、日志和测试原则 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
+| [增量版本记录](docs/version-history.md) | 首版分步提交与每步独立验证证据 |
 
 ## 方案摘要
 
