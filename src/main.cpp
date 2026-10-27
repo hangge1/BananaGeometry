@@ -9,7 +9,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include "application.h"
+#include "app/application.h"
 #include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"

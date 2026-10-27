@@ -1,40 +1,15 @@
-#include "application.h"
-#include "platform/document_io.h"
-
-#include <windows.h>
-
-#include <commdlg.h>
+#include "app/application.h"
 
 #include <algorithm>
-#include <cctype>
-#include <cmath>
 #include <set>
 #include <stdexcept>
 
+#include "app/lua_ui.h"
 #include "imgui.h"
-#include "render/canvas_renderer.h"
+#include "platform/document_io.h"
+#include "platform/file_dialog.h"
 
 namespace drawer {
-namespace {
-std::filesystem::path FileDialog(bool save) {
-  wchar_t path[32768]{};
-  OPENFILENAMEW dialog{};
-  dialog.lStructSize = sizeof(dialog);
-  dialog.hwndOwner = GetActiveWindow();
-  dialog.lpstrFilter =
-      L"Drawer document (*.drawer.json)\0*.drawer.json\0JSON "
-      L"(*.json)\0*.json\0\0";
-  dialog.lpstrFile = path;
-  dialog.nMaxFile = 32768;
-  dialog.lpstrDefExt = L"drawer.json";
-  dialog.Flags = OFN_NOCHANGEDIR | OFN_EXPLORER | OFN_PATHMUSTEXIST |
-                 (save ? OFN_OVERWRITEPROMPT : OFN_FILEMUSTEXIST);
-  if (save ? GetSaveFileNameW(&dialog) : GetOpenFileNameW(&dialog)) return path;
-  if (CommDlgExtendedError())
-    throw std::runtime_error("System file dialog failed");
-  return {};
-}
-}  // namespace
 Application::Application(std::filesystem::path root) : root_(std::move(root)) {
   Scan();
   for (const auto& item : cases_)
@@ -75,7 +50,7 @@ Session* Application::Active() {
 }
 void Application::Open() {
   try {
-    auto path = FileDialog(false);
+    auto path = ChooseDocumentPath(DocumentDialog::kOpen);
     if (path.empty()) return;
     auto document = ReadDocument(path);
     auto found = std::find_if(
@@ -99,8 +74,9 @@ void Application::Open() {
 bool Application::Save(Session* session, bool save_as) {
   try {
     session->Cancel();
-    auto path =
-        save_as || session->file.empty() ? FileDialog(true) : session->file;
+    auto path = save_as || session->file.empty()
+                    ? ChooseDocumentPath(DocumentDialog::kSave)
+                    : session->file;
     if (path.empty()) return false;
     WriteDocument(path, session->SaveData());
     session->file = path;
@@ -187,75 +163,11 @@ void Application::Confirm() {
     ImGui::EndPopup();
   }
 }
-std::vector<Value> Application::Ui(const std::string& op,
-                                   const Value::Array& args) {
-  auto arg = [&](size_t i) -> const Value& {
-    static const Value null;
-    return i < args.size() ? args[i] : null;
-  };
-  auto label = arg(0).StringOr("");
-  bool changed = false, finished = false;
-  Value value = arg(1);
-  if (op == "button") {
-    changed = ImGui::Button(label.c_str());
-    return {changed, changed, changed};
-  }
-  if (op == "text")
-    ImGui::TextWrapped("%s", label.c_str());
-  else if (op == "same_line")
-    ImGui::SameLine();
-  else if (op == "separator")
-    ImGui::Separator();
-  else if (op == "slider" || op == "number") {
-    double number = value.NumberOr(0), lower = arg(2).NumberOr(0),
-           upper = arg(3).NumberOr(100);
-    if (op == "slider")
-      changed = ImGui::SliderScalar(label.c_str(), ImGuiDataType_Double,
-                                    &number, &lower, &upper, "%.2f");
-    else
-      changed = ImGui::InputDouble(label.c_str(), &number, 1, 10, "%.2f");
-    if (!std::isfinite(number)) number = 0;
-    value = std::clamp(number, lower, upper);
-    finished = ImGui::IsItemDeactivatedAfterEdit();
-  } else if (op == "checkbox") {
-    bool boolean = value.IsBool() && value.Bool();
-    changed = ImGui::Checkbox(label.c_str(), &boolean);
-    value = boolean;
-    finished = changed;
-  } else if (op == "input") {
-    char text[4096]{};
-    auto string = value.StringOr("");
-    memcpy(text, string.data(), std::min(string.size(), sizeof(text) - 1));
-    changed = ImGui::InputText(label.c_str(), text, sizeof(text));
-    value = std::string(text);
-    finished = ImGui::IsItemDeactivatedAfterEdit();
-  } else if (op == "combo" && arg(2).IsArray()) {
-    const auto& choices = arg(2).Items();
-    int current = static_cast<int>(value.NumberOr(1)) - 1;
-    const char* preview = current >= 0 &&
-                                  current < static_cast<int>(choices.size()) &&
-                                  choices[current].IsString()
-                              ? choices[current].String().c_str()
-                              : "";
-    if (ImGui::BeginCombo(label.c_str(), preview)) {
-      for (size_t i = 0; i < choices.size(); ++i) {
-        auto text = choices[i].StringOr("");
-        if (ImGui::Selectable(text.c_str(), static_cast<int>(i) == current)) {
-          value = static_cast<int>(i + 1);
-          changed = finished = true;
-        }
-      }
-      ImGui::EndCombo();
-    }
-  } else if (op != "text" && op != "same_line" && op != "separator")
-    throw std::runtime_error("Unknown UI operation: " + op);
-  return {value, changed, finished};
-}
 void Application::Controls(Session* session) {
   ImGui::TextUnformatted("用例控件");
   ImGui::Separator();
   session->Controls([&](const auto& operation, const auto& arguments) {
-    return Ui(operation, arguments);
+    return DrawLuaWidget(operation, arguments);
   });
   ImGui::Spacing();
   ImGui::Separator();
@@ -269,84 +181,6 @@ void Application::Controls(Session* session) {
       "左键：平移\n滚轮：以鼠标为中心缩放\nHome：适应内容\nEsc：取消当前操作\nD"
       "elete：删除选中对"
       "象\nCtrl+N/O/S/Z/Y：新建/加载/保存/撤销/重做\nF5：重新加载当前用例");
-}
-void Application::Canvas(Session* session) {
-  auto origin = ImGui::GetCursorScreenPos(),
-       size = ImGui::GetContentRegionAvail();
-  size.x = std::max(size.x, 1.0f);
-  size.y = std::max(size.y, 1.0f);
-  ImGui::InvisibleButton("canvas", size,
-                         ImGuiButtonFlags_MouseButtonLeft |
-                             ImGuiButtonFlags_MouseButtonMiddle |
-                             ImGuiButtonFlags_MouseButtonRight);
-  bool hovered = ImGui::IsItemHovered();
-  auto& io = ImGui::GetIO();
-  Point mouse{io.MousePos.x - origin.x, io.MousePos.y - origin.y};
-  bool pan = ImGui::IsMouseDown(ImGuiMouseButton_Middle) ||
-             (ImGui::IsKeyDown(ImGuiKey_Space) &&
-              ImGui::IsMouseDown(ImGuiMouseButton_Left));
-  if ((hovered || ImGui::IsItemActive()) && pan && !session->Editing())
-    session->view.Pan({io.MouseDelta.x, io.MouseDelta.y});
-  if (hovered && io.MouseWheel && !session->Editing())
-    session->view.ZoomAt(mouse, {size.x, size.y},
-                         std::pow(1.18, io.MouseWheel));
-  auto world = session->view.ToWorld(mouse, {size.x, size.y});
-  if (hovered) {
-    last_x_ = world.x;
-    last_y_ = world.y;
-  }
-  auto send = [&](const char* type, const char* key = "", int button = 0) {
-    session->Event(Value::Object{{"type", type},
-                                 {"x", world.x},
-                                 {"y", world.y},
-                                 {"key", key},
-                                 {"ctrl", io.KeyCtrl},
-                                 {"shift", io.KeyShift},
-                                 {"alt", io.KeyAlt},
-                                 {"button", button}});
-  };
-  bool input = !io.WantTextInput && pending_ == Action::kNone;
-  if (input) {
-    if (hovered && !pan && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-      send("down", "", 1);
-    if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-      send("down", "", 2);
-    if ((hovered || session->Editing()) && (io.MouseDelta.x || io.MouseDelta.y))
-      send("move");
-    if ((hovered || session->Editing()) &&
-        ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-      send("up", "", 1);
-    if (hovered && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-      send("up", "", 2);
-    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-      send("key", "escape");
-      session->Cancel();
-    }
-    if (hovered && ImGui::IsKeyPressed(ImGuiKey_Delete)) send("key", "delete");
-    if (hovered && !io.KeyCtrl)
-      for (int code = ImGuiKey_NamedKey_BEGIN; code < ImGuiKey_NamedKey_END;
-           ++code) {
-        auto key = static_cast<ImGuiKey>(code);
-        if (key == ImGuiKey_Escape || key == ImGuiKey_Delete ||
-            key == ImGuiKey_Home || code >= ImGuiKey_MouseLeft)
-          continue;
-        std::string name = ImGui::GetKeyName(key);
-        std::transform(
-            name.begin(), name.end(), name.begin(),
-            [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        if (ImGui::IsKeyPressed(key, false)) send("key", name.c_str());
-        if (ImGui::IsKeyReleased(key)) send("key_up", name.c_str());
-      }
-    if (ImGui::IsKeyPressed(ImGuiKey_Home))
-      FitView(&session->view, session->State(), {size.x, size.y});
-  }
-  session->Draw(session->view.zoom);
-  RenderCanvas(session->view, session->DrawItems(), origin, size);
-  if (session->State().At("objects").Items().empty()) {
-    ImGui::GetWindowDrawList()->AddText({origin.x + 20, origin.y + 18},
-                                        IM_COL32(140, 160, 185, 255),
-                                        "从左侧选择用例，或在画布中开始绘制。");
-  }
 }
 void Application::Frame() {
   auto* viewport = ImGui::GetMainViewport();
@@ -438,7 +272,7 @@ void Application::Frame() {
         ImGui::BeginChild(
             "view", {0, 0}, ImGuiChildFlags_Borders,
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        Canvas(tab.session.get());
+        canvas_.Draw(tab.session.get(), pending_ == Action::kNone);
         ImGui::EndChild();
         ImGui::EndTabItem();
       }
@@ -450,7 +284,8 @@ void Application::Frame() {
   ImGui::EndChild();
   session = Active();
   ImGui::Separator();
-  ImGui::Text("X %.2f   Y %.2f   Zoom %.1f%%   %.1f FPS", last_x_, last_y_,
+  ImGui::Text("X %.2f   Y %.2f   Zoom %.1f%%   %.1f FPS",
+              canvas_.MouseWorld().x, canvas_.MouseWorld().y,
               session ? session->view.zoom * 100 : 100, io.Framerate);
   auto message =
       session && !session->Error().empty() ? session->Error() : error_;

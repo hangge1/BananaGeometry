@@ -1,10 +1,11 @@
-#ifndef DRAWER_SRC_APPLICATION_H_
-#define DRAWER_SRC_APPLICATION_H_
+#ifndef DRAWER_SRC_APP_APPLICATION_H_
+#define DRAWER_SRC_APP_APPLICATION_H_
 
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "app/canvas_view.h"
 #include "runtime/session.h"
 
 namespace drawer {
@@ -21,7 +22,8 @@ class Application {
  private:
   struct CaseInfo {
     std::filesystem::path entry;
-    std::string id, name;
+    std::string id;
+    std::string name;
   };
   struct Tab {
     int key;
@@ -36,20 +38,20 @@ class Application {
   void Complete();
   void Confirm();
   Session* Active();
-  void Canvas(Session* session);
   void Controls(Session* session);
-  std::vector<Value> Ui(const std::string& operation,
-                        const Value::Array& arguments);
   std::filesystem::path root_;
   std::vector<CaseInfo> cases_;
   std::vector<Tab> tabs_;
-  int next_key_ = 1, active_ = 0, target_ = 0;
+  int next_key_ = 1;
+  int active_ = 0;
+  int target_ = 0;
   Action pending_ = Action::kNone;
   bool exit_ = false;
   int select_key_ = 0;
-  std::string error_, notice_;
-  double last_x_ = 0, last_y_ = 0;
+  std::string error_;
+  std::string notice_;
+  CanvasView canvas_;
 };
 }  // namespace drawer
 
-#endif  // DRAWER_SRC_APPLICATION_H_
+#endif  // DRAWER_SRC_APP_APPLICATION_H_
