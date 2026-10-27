@@ -2,6 +2,14 @@
 
 日期：2026-10-27。以下区分自动化检查、截图检查与未完成的人工验收。
 
+## 当前单元测试体系
+
+已迁移到 Catch2 3.16.1，测试按值、历史、坐标、文档和 Lua 会话分别组织，使用参数化数据、Section、异常与浮点断言。CTest 自动发现各个测试，支持 `ctest -L unit`、`ctest -L integration` 和测试程序的标签筛选。
+
+本次 Debug 验证为 36 个独立单元/运行时用例和一个窗口检查，共 37/37 通过。`tests/lua/` 保存可独立维护的 Lua 行为脚本，错误报告保留脚本文件名；各测试拥有独立临时目录，可并行运行。
+
+报告示例：`ctest --test-dir build/windows -C Debug --output-on-failure --output-junit test-results-Debug.xml`。以下 7 组表格及计时记录是首版历史结果，性能部分将由独立 Google Benchmark 目标替代。
+
 ## 自动化入口
 
 ```powershell

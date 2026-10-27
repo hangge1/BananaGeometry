@@ -29,7 +29,9 @@ class Session {
   // value/changed/ended.
   bool Controls(UiCallback ui);
   bool Draw(double zoom);
-  bool Execute(const std::string& source);
+  // A chunk name beginning with '@' gives Lua failures their source file path.
+  bool Execute(const std::string& source,
+               const std::string& chunk_name = "console");
   bool Clear();
   void Undo();
   void Redo();

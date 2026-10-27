@@ -429,12 +429,13 @@ bool Session::Draw(double zoom) {
   lua_pop(lua_, 1);
   return Call("on_draw");
 }
-bool Session::Execute(const std::string& source) {
+bool Session::Execute(const std::string& source,
+                      const std::string& chunk_name) {
   const int top = lua_gettop(lua_);
   lua_rawgeti(lua_, LUA_REGISTRYINDEX, context_);
   lua_setglobal(lua_, "ctx");
-  bool ok =
-      luaL_loadbuffer(lua_, source.data(), source.size(), "test") == LUA_OK;
+  bool ok = luaL_loadbuffer(lua_, source.data(), source.size(),
+                            chunk_name.c_str()) == LUA_OK;
   if (ok)
     ok = ProtectedCall(0, 0);
   else
