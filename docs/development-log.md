@@ -141,9 +141,14 @@
 - CMake 分离 `drawer_core`、`drawer_runtime`、`drawer_platform`、`drawer_render`，只通过公开模型和函数关联。
 - 测试支持分别组织路径、状态工厂与会话 fixture，避免历史测试为方便而包含运行时或平台接口。
 - Debug 构建与 37/37 CTest 通过，文件格式、用例 API 和交互行为保持兼容。
+
+### Lua SDK 职责拆分
+
+- `sdk/drawer.lua` 作为公共入口组合五个模块：纯几何、状态事务、对象与命中、交互、控件。
+- 对象绘图不读取交互临时状态；交互层通过对象和事务接口操作数据。保持已有 `ctx` 调用兼容。
+- StyLua AST 验证及格式检查通过；37/37 CTest 通过，实际窗口使用拆分后的 SDK 启动成功。
 ## 2026-10-27：Lua 运行时内部边界
 
 - 将会话生命周期、宿主回调绑定、Lua 栈与数据转换分别放入 `runtime/session.cpp`、`session_bindings.cpp` 和 `detail/lua_support.*`；调用方仅依赖 `runtime/session.h`。
 - 为后续 SDK 模块拆分保留 `drawer.*` 模块命名空间，普通模块仍从用例目录加载，维持中文路径和实例隔离。
 - Debug 构建通过；37/37 CTest 通过，覆盖连续绘制、事务回滚、模块加载、重载失败和实际窗口启动。
-
