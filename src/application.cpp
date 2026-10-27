@@ -1,4 +1,5 @@
 #include "application.h"
+#include "platform/document_io.h"
 
 #include <windows.h>
 
@@ -11,7 +12,7 @@
 #include <stdexcept>
 
 #include "imgui.h"
-#include "renderer.h"
+#include "render/canvas_renderer.h"
 
 namespace drawer {
 namespace {

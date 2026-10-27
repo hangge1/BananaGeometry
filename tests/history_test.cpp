@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
-#include "test_support.h"
+#include "support/state.h"
+#include "core/history.h"
 
 namespace drawer {
 TEST_CASE("History starts at a clean save point", "[history]") {

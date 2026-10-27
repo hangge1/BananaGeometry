@@ -1,14 +1,9 @@
-#include "document.h"
-
-#include <windows.h>
-
+#include "core/document.h"
 #include <algorithm>
-#include <atomic>
 #include <cmath>
-#include <fstream>
+#include <limits>
 #include <set>
 #include <stdexcept>
-
 namespace drawer {
 namespace {
 void ValidatePlainData(const Value& value) {
@@ -20,81 +15,6 @@ void ValidatePlainData(const Value& value) {
     for (const auto& field : value.Fields()) ValidatePlainData(field.second);
 }
 }  // namespace
-Point View::ToScreen(Point p, Point size) const {
-  return {size.x * .5 + (p.x - center.x) * zoom,
-          size.y * .5 - (p.y - center.y) * zoom};
-}
-Point View::ToWorld(Point p, Point size) const {
-  return {center.x + (p.x - size.x * .5) / zoom,
-          center.y - (p.y - size.y * .5) / zoom};
-}
-void View::ZoomAt(Point screen, Point size, double factor) {
-  auto before = ToWorld(screen, size);
-  zoom = std::clamp(zoom * factor, .0001, 10000.0);
-  auto after = ToWorld(screen, size);
-  center.x += before.x - after.x;
-  center.y += before.y - after.y;
-}
-void View::Pan(Point pixels) {
-  center.x -= pixels.x / zoom;
-  center.y += pixels.y / zoom;
-}
-double Distance(Point a, Point b) { return std::hypot(a.x - b.x, a.y - b.y); }
-double SegmentDistance(Point p, Point a, Point b) {
-  double dx = b.x - a.x, dy = b.y - a.y;
-  double denominator = dx * dx + dy * dy;
-  if (denominator == 0) return Distance(p, a);
-  double t =
-      std::clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / denominator, 0.0, 1.0);
-  return Distance(p, {a.x + t * dx, a.y + t * dy});
-}
-
-void History::Reset(Value state) {
-  total_bytes_ = ToJson(state).size();
-  states_ = {std::move(state)};
-  labels_ = {""};
-  bytes_ = {total_bytes_};
-  index_ = 0;
-  MarkSaved();
-}
-void History::Push(Value state, std::string label) {
-  if (state == Current()) return;
-  const size_t bytes = ToJson(state).size();
-  for (size_t i = index_ + 1; i < bytes_.size(); ++i) total_bytes_ -= bytes_[i];
-  states_.resize(index_ + 1);
-  labels_.resize(index_ + 1);
-  bytes_.resize(index_ + 1);
-  states_.push_back(std::move(state));
-  labels_.push_back(std::move(label));
-  bytes_.push_back(bytes);
-  total_bytes_ += bytes;
-  ++index_;
-  while (states_.size() > 101 ||
-         (total_bytes_ > 64 * 1024 * 1024 && states_.size() > 2)) {
-    total_bytes_ -= bytes_.front();
-    states_.erase(states_.begin());
-    labels_.erase(labels_.begin());
-    bytes_.erase(bytes_.begin());
-    --index_;
-  }
-}
-bool History::Undo() {
-  if (!CanUndo()) return false;
-  --index_;
-  return true;
-}
-bool History::Redo() {
-  if (!CanRedo()) return false;
-  ++index_;
-  return true;
-}
-std::string History::UndoLabel() const {
-  return CanUndo() ? labels_[index_] : "";
-}
-std::string History::RedoLabel() const {
-  return CanRedo() ? labels_[index_ + 1] : "";
-}
-
 void ValidateState(const Value& state) {
   // Serializing first enforces the depth limit before recursive shape
   // validation.
@@ -178,41 +98,41 @@ Document DecodeDocument(const Value& root) {
     throw std::runtime_error("Invalid document view");
   return result;
 }
-Document ReadDocument(const std::filesystem::path& path) {
-  if (std::filesystem::file_size(path) > 16 * 1024 * 1024)
-    throw std::runtime_error("File exceeds 16 MiB");
-  std::ifstream input(path, std::ios::binary);
-  if (!input) throw std::runtime_error("Cannot open document");
-  std::string text((std::istreambuf_iterator<char>(input)), {});
-  return DecodeDocument(ParseJson(text));
-}
-void WriteDocument(const std::filesystem::path& path,
-                   const Document& document) {
-  std::string text = ToJson(EncodeDocument(document));
-  if (text.size() > 16 * 1024 * 1024)
-    throw std::runtime_error("Document exceeds 16 MiB");
-  // Write beside the destination so replacement stays on the same filesystem.
-  static std::atomic<unsigned> sequence{0};
-  auto temporary = path;
-  temporary += L".tmp." + std::to_wstring(GetCurrentProcessId()) + L"." +
-               std::to_wstring(++sequence);
-  try {
-    {
-      std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
-      output.exceptions(std::ios::failbit | std::ios::badbit);
-      output.write(text.data(), static_cast<std::streamsize>(text.size()));
-      output.flush();
-      output.close();
+void FitView(View* view, const Value& state, Point size) {
+  Point lower{std::numeric_limits<double>::max(),
+              std::numeric_limits<double>::max()};
+  Point upper{-lower.x, -lower.y};
+  auto include = [&](Point p) {
+    lower.x = std::min(lower.x, p.x);
+    lower.y = std::min(lower.y, p.y);
+    upper.x = std::max(upper.x, p.x);
+    upper.y = std::max(upper.y, p.y);
+  };
+  for (const auto& object : state.At("objects").Items()) {
+    const auto& points = object.At("points");
+    if (!points.IsArray()) continue;
+    for (const auto& p : points.Items())
+      include({p.At("x").NumberOr(0), p.At("y").NumberOr(0)});
+    auto kind = object.At("kind").StringOr("");
+    if ((kind == "circle" || kind == "ellipse") && points.Items().size() >= 2) {
+      Point a{points.Items()[0].At("x").Number(),
+              points.Items()[0].At("y").Number()};
+      Point b{points.Items()[1].At("x").Number(),
+              points.Items()[1].At("y").Number()};
+      double rx = kind == "circle" ? Distance(a, b) : std::abs(a.x - b.x);
+      double ry = kind == "circle" ? rx : std::abs(a.y - b.y);
+      include({a.x - rx, a.y - ry});
+      include({a.x + rx, a.y + ry});
     }
-    if (!MoveFileExW(temporary.c_str(), path.c_str(),
-                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-      throw std::runtime_error(
-          "Cannot replace destination document (Windows error " +
-          std::to_string(GetLastError()) + ")");
-  } catch (...) {
-    std::error_code ignored;
-    std::filesystem::remove(temporary, ignored);
-    throw;
   }
+  if (lower.x > upper.x) {
+    *view = {};
+    return;
+  }
+  view->center = {(lower.x + upper.x) * .5, (lower.y + upper.y) * .5};
+  view->zoom = std::clamp(
+      std::min(std::max(1.0, size.x - 100) / std::max(1.0, upper.x - lower.x),
+               std::max(1.0, size.y - 100) / std::max(1.0, upper.y - lower.y)),
+      .0001, 10000.0);
 }
 }  // namespace drawer

@@ -1,5 +1,5 @@
-#ifndef DRAWER_SRC_VALUE_H_
-#define DRAWER_SRC_VALUE_H_
+#ifndef DRAWER_SRC_CORE_VALUE_H_
+#define DRAWER_SRC_CORE_VALUE_H_
 
 #include <map>
 #include <string>
@@ -59,4 +59,4 @@ Value ParseJson(const std::string& text);
 
 }  // namespace drawer
 
-#endif  // DRAWER_SRC_VALUE_H_
+#endif  // DRAWER_SRC_CORE_VALUE_H_

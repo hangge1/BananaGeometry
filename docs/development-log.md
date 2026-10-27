@@ -133,3 +133,11 @@
 - 移除手写运行器与断言宏，按模块拆分测试文件，采用独立用例、参数化、Section、异常和浮点断言。
 - 增加隔离临时目录和 Lua 文件脚本测试；运行脚本可以指定 chunk 文件名，失败时保留源路径。
 - Debug 构建和 37/37 CTest 通过，JUnit 报告位于 `build/windows/test-results-Debug.xml`。性能计时不混入本次正确性测试迁移。
+
+### 数据、运行时与平台边界
+
+- 将值、几何、历史和文档模型组织到 `src/core/`，其中不再包含 Lua、ImGui 或 Win32 依赖。
+- 将原子文件读写移到 `src/platform/`，画布绘制移到 `src/render/`；适应内容计算归文档模型。
+- CMake 分离 `drawer_core`、`drawer_runtime`、`drawer_platform`、`drawer_render`，只通过公开模型和函数关联。
+- 测试支持分别组织路径、状态工厂与会话 fixture，避免历史测试为方便而包含运行时或平台接口。
+- Debug 构建与 37/37 CTest 通过，文件格式、用例 API 和交互行为保持兼容。

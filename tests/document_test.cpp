@@ -1,6 +1,7 @@
 #include <limits>
 #include <catch2/catch_test_macros.hpp>
-#include "test_support.h"
+#include "support/session_fixture.h"
+#include "platform/document_io.h"
 
 namespace drawer {
 using testing::SourceRoot;

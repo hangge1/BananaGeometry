@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "document.h"
+#include "core/document.h"
+#include "core/history.h"
 
 struct lua_State;
 struct lua_Debug;

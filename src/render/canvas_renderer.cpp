@@ -1,4 +1,4 @@
-#include "renderer.h"
+#include "render/canvas_renderer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -109,42 +109,5 @@ void RenderCanvas(const View& view, const std::vector<Value>& items,
     }
   }
   draw->PopClipRect();
-}
-void FitView(View* view, const Value& state, Point size) {
-  Point lower{std::numeric_limits<double>::max(),
-              std::numeric_limits<double>::max()};
-  Point upper{-lower.x, -lower.y};
-  auto include = [&](Point p) {
-    lower.x = std::min(lower.x, p.x);
-    lower.y = std::min(lower.y, p.y);
-    upper.x = std::max(upper.x, p.x);
-    upper.y = std::max(upper.y, p.y);
-  };
-  for (const auto& object : state.At("objects").Items()) {
-    const auto& points = object.At("points");
-    if (!points.IsArray()) continue;
-    for (const auto& p : points.Items())
-      include({p.At("x").NumberOr(0), p.At("y").NumberOr(0)});
-    auto kind = object.At("kind").StringOr("");
-    if ((kind == "circle" || kind == "ellipse") && points.Items().size() >= 2) {
-      Point a{points.Items()[0].At("x").Number(),
-              points.Items()[0].At("y").Number()};
-      Point b{points.Items()[1].At("x").Number(),
-              points.Items()[1].At("y").Number()};
-      double rx = kind == "circle" ? Distance(a, b) : std::abs(a.x - b.x);
-      double ry = kind == "circle" ? rx : std::abs(a.y - b.y);
-      include({a.x - rx, a.y - ry});
-      include({a.x + rx, a.y + ry});
-    }
-  }
-  if (lower.x > upper.x) {
-    *view = {};
-    return;
-  }
-  view->center = {(lower.x + upper.x) * .5, (lower.y + upper.y) * .5};
-  view->zoom = std::clamp(
-      std::min(std::max(1.0, size.x - 100) / std::max(1.0, upper.x - lower.x),
-               std::max(1.0, size.y - 100) / std::max(1.0, upper.y - lower.y)),
-      .0001, 10000.0);
 }
 }  // namespace drawer

@@ -3,7 +3,7 @@
 #include <string>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include "value.h"
+#include "core/value.h"
 
 namespace drawer {
 TEST_CASE("JSON preserves Unicode and empty container types", "[json]") {
