@@ -2,7 +2,6 @@
 local geometry = require('drawer.geometry')
 local distance = geometry.distance
 local segment_distance = geometry.segment_distance
-local bezier_point = geometry.bezier
 
 local M = {}
 
@@ -169,14 +168,12 @@ function M.attach(ctx, host)
       local d = math.sqrt(((p.x - points[1].x) / rx) ^ 2 + ((p.y - points[1].y) / ry) ^ 2)
       return (object.fill and d <= 1) or math.abs(d - 1) * math.min(rx, ry) <= tolerance
     end
-    if kind == 'bezier' and #points == 4 then
-      local previous = points[1]
-      for i = 1, 48 do
-        local next_point = bezier_point(points, i / 48)
-        if segment_distance(p, previous, next_point) <= tolerance then
+    if kind == 'bezier' and #points >= 2 then
+      local curve = host.bezier_polyline(points, 0.75 / self.zoom)
+      for i = 2, #curve do
+        if segment_distance(p, curve[i - 1], curve[i]) <= tolerance then
           return true
         end
-        previous = next_point
       end
       return false
     end

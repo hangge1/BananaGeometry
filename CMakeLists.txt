@@ -37,7 +37,7 @@ add_library(imgui STATIC "${imgui_source_SOURCE_DIR}/imgui.cpp" "${imgui_source_
 target_include_directories(imgui PUBLIC "${imgui_source_SOURCE_DIR}" "${imgui_source_SOURCE_DIR}/backends")
 target_link_libraries(imgui PRIVATE d3d11 d3dcompiler dwmapi)
 
-add_library(drawer_core STATIC src/core/value.cpp src/core/geometry.cpp
+add_library(drawer_core STATIC src/core/value.cpp src/core/geometry.cpp src/core/bezier.cpp
     src/core/history.cpp src/core/document.cpp)
 target_include_directories(drawer_core PUBLIC src)
 target_link_libraries(drawer_core PUBLIC drawer_options)

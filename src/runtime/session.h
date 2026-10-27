@@ -75,6 +75,7 @@ class Session {
   static int Ui(lua_State* state);
   static int Array(lua_State* state);
   static int MeasureText(lua_State* state);
+  static int BezierPolyline(lua_State* state);
   static int Module(lua_State* state);
   static int Trace(lua_State* state);
   static void InstructionHook(lua_State* state, lua_Debug* debug);

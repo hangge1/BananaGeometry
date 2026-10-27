@@ -72,7 +72,8 @@ Session::Session(const std::filesystem::path& sdk,
         {"emit", Safe<Emit>},
         {"ui", Safe<Ui>},
         {"array", Safe<Array>},
-        {"measure_text", Safe<MeasureText>}};
+        {"measure_text", Safe<MeasureText>},
+        {"bezier_polyline", Safe<BezierPolyline>}};
     for (const auto& [name, function] : functions) {
       lua_pushlightuserdata(lua_, this);
       lua_pushcclosure(lua_, function, 1);

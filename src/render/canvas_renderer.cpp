@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 
+#include "core/bezier.h"
+
 namespace drawer {
 namespace {
 ImU32 Color(const Value& shape, float alpha = 1) {
@@ -72,10 +74,14 @@ void RenderCanvas(const View& view, const std::vector<Value>& items,
                             color);
     else if (kind == "text")
       draw->AddText(points[0], color, item.At("text").StringOr("").c_str());
-    else if (kind == "bezier" && points.size() == 4)
-      draw->AddBezierCubic(points[0], points[1], points[2], points[3], color,
-                           width);
-    else if (kind == "rect" && points.size() >= 2) {
+    else if (kind == "bezier" && world.size() >= 2 &&
+             world.size() <= kMaxBezierDegree + 1) {
+      points.clear();
+      for (const auto& point : FlattenBezier(world, .75 / view.zoom))
+        points.push_back(screen(point));
+      draw->AddPolyline(points.data(), static_cast<int>(points.size()), color,
+                        0, width);
+    } else if (kind == "rect" && points.size() >= 2) {
       ImVec2 a(std::min(points[0].x, points[1].x),
                std::min(points[0].y, points[1].y));
       ImVec2 b(std::max(points[0].x, points[1].x),

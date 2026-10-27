@@ -4,6 +4,7 @@
 #include <cmath>
 #include <stdexcept>
 
+#include "core/bezier.h"
 #include "runtime/detail/lua_support.h"
 
 namespace drawer {
@@ -84,6 +85,24 @@ int Session::MeasureText(lua_State* state) {
   lua_pushnumber(state, size.x);
   lua_pushnumber(state, size.y);
   return 2;
+}
+int Session::BezierPolyline(lua_State* state) {
+  const auto source = ReadLua(state, 1);
+  if (!source.IsArray())
+    throw std::runtime_error("Bezier controls must be an array");
+  std::vector<Point> controls;
+  for (const auto& value : source.Items()) {
+    if (!value.At("x").IsNumber() || !value.At("y").IsNumber())
+      throw std::runtime_error("Bezier controls require numeric x/y");
+    controls.push_back({value.At("x").Number(), value.At("y").Number()});
+  }
+  if (!lua_isnumber(state, 2))
+    throw std::runtime_error("Expected Bezier tolerance");
+  Value::Array points;
+  for (const auto& point : FlattenBezier(controls, lua_tonumber(state, 2)))
+    points.emplace_back(Value::Object{{"x", point.x}, {"y", point.y}});
+  PushLua(state, points);
+  return 1;
 }
 int Session::Module(lua_State* state) {
   auto module = Text(state, 1);

@@ -4,6 +4,7 @@
 #include <limits>
 #include <set>
 #include <stdexcept>
+#include "core/bezier.h"
 namespace drawer {
 namespace {
 void ValidatePlainData(const Value& value) {
@@ -53,7 +54,7 @@ void ValidateState(const Value& state) {
           kind == "circle" || kind == "ellipse") &&
          count < 2) ||
         ((kind == "triangle" || kind == "polygon") && count < 3) ||
-        (kind == "bezier" && count != 4))
+        (kind == "bezier" && (count < 2 || count > kMaxBezierDegree + 1)))
       throw std::runtime_error("Invalid point count for " + kind);
   }
   auto next = state.At("next_id").NumberOr(0);

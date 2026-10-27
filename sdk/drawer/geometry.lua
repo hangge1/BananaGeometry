@@ -10,6 +10,22 @@ local function segment_distance(p, a, b)
   return distance(p, { x = a.x + t * dx, y = a.y + t * dy })
 end
 local function bezier_point(points, t)
+  assert(#points >= 2 and #points <= 33, 'Bezier requires 2..33 control points')
+  assert(type(t) == 'number' and t >= 0 and t <= 1, 'Bezier parameter must be in [0, 1]')
+  if #points ~= 4 then
+    -- De Casteljau avoids factorial coefficients and leaves control data intact.
+    local work = {}
+    for i, point in ipairs(points) do
+      work[i] = { x = point.x, y = point.y }
+    end
+    for remaining = #work - 1, 1, -1 do
+      for i = 1, remaining do
+        work[i].x = (1 - t) * work[i].x + t * work[i + 1].x
+        work[i].y = (1 - t) * work[i].y + t * work[i + 1].y
+      end
+    end
+    return work[1]
+  end
   local u = 1 - t
   return {
     x = u ^ 3 * points[1].x
