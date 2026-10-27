@@ -69,3 +69,8 @@
 
 - 提交目标：`feat: Add isolated Lua runtime and transactions`。
 - 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-4.log`。
+
+### 增量版本步骤 4
+
+- 提交目标：`feat: Add Lua drawing SDK and example cases`。
+- 从暂存树导出的独立目录验证通过，构建与测试日志：`build/versioning/verify-5.log`。
