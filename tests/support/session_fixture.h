@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 #include <catch2/catch_test_macros.hpp>
-#include "session.h"
+#include "runtime/session.h"
 #include "support/paths.h"
 
 namespace drawer::testing {

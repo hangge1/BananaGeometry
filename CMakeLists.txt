@@ -40,7 +40,8 @@ add_library(drawer_core STATIC src/core/value.cpp src/core/geometry.cpp
     src/core/history.cpp src/core/document.cpp)
 target_include_directories(drawer_core PUBLIC src)
 target_link_libraries(drawer_core PUBLIC drawer_options)
-add_library(drawer_runtime STATIC src/session.cpp)
+add_library(drawer_runtime STATIC src/runtime/session.cpp
+    src/runtime/session_bindings.cpp src/runtime/detail/lua_support.cpp)
 target_link_libraries(drawer_runtime PUBLIC drawer_core PRIVATE lua)
 add_library(drawer_platform STATIC src/platform/document_io.cpp)
 target_link_libraries(drawer_platform PUBLIC drawer_core)

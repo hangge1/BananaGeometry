@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "session.h"
+#include "runtime/session.h"
 
 namespace drawer {
 // Coordinates desktop UI and independent case tabs. Destructive actions are

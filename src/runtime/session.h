@@ -1,5 +1,5 @@
-#ifndef DRAWER_SRC_SESSION_H_
-#define DRAWER_SRC_SESSION_H_
+#ifndef DRAWER_SRC_RUNTIME_SESSION_H_
+#define DRAWER_SRC_RUNTIME_SESSION_H_
 
 #include <filesystem>
 #include <functional>
@@ -93,4 +93,4 @@ std::vector<std::filesystem::path> DiscoverCases(
     const std::filesystem::path& directory);
 }  // namespace drawer
 
-#endif  // DRAWER_SRC_SESSION_H_
+#endif  // DRAWER_SRC_RUNTIME_SESSION_H_
