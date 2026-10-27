@@ -43,6 +43,7 @@ local geometry = require('drawer.geometry')
 local state = require('drawer.state')
 local objects = require('drawer.objects')
 local interaction = require('drawer.interaction')
+local drawing = require('drawer.drawing')
 local ui = require('drawer.ui')
 
 -- The host injects this table once per isolated Lua VM.
@@ -62,10 +63,12 @@ function M.new()
   state.attach(ctx, host)
   objects.attach(ctx, host)
   interaction.attach(ctx)
+  drawing.attach(ctx)
   ui.attach(ctx, host)
   function ctx:render()
     self:render_objects()
     self:render_interaction()
+    self:render_drawing()
   end
   return ctx
 end

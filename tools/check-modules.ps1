@@ -48,6 +48,7 @@ $luaAllowed = @{
     state = @()
     objects = @('geometry')
     interaction = @('geometry')
+    drawing = @()
     ui = @()
 }
 foreach ($name in $luaAllowed.Keys) {
@@ -67,4 +68,4 @@ foreach ($name in $luaAllowed.Keys) {
     }
 }
 if ($violations.Count) { throw ($violations -join [Environment]::NewLine) }
-Write-Output "Module include/import checks passed ($($files.Count) C++ files and 5 Lua modules)."
+Write-Output "Module include/import checks passed ($($files.Count) C++ files and $($luaAllowed.Count) Lua modules)."

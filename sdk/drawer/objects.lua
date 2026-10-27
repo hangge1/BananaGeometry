@@ -210,6 +210,14 @@ function M.attach(ctx, host)
     end
     return false
   end
+  function ctx:draw_object(object)
+    local custom = self.types[object.kind]
+    if custom and custom.draw then
+      custom.draw(self, object)
+    else
+      self:emit(object)
+    end
+  end
   function ctx:render_objects()
     local standard = self.array()
     for _, object in ipairs(self.state.objects) do

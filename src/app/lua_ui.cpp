@@ -3,11 +3,21 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <stdexcept>
 
 #include "imgui.h"
 
 namespace drawer {
+namespace {
+int Integer(const Value& value, int fallback) {
+  const double number = value.NumberOr(fallback);
+  if (!std::isfinite(number)) return fallback;
+  return static_cast<int>(std::clamp(number,
+                                     double(std::numeric_limits<int>::min()),
+                                     double(std::numeric_limits<int>::max())));
+}
+}  // namespace
 std::vector<Value> DrawLuaWidget(const std::string& op,
                                  const Value::Array& args) {
   auto arg = [&](size_t i) -> const Value& {
@@ -38,6 +48,14 @@ std::vector<Value> DrawLuaWidget(const std::string& op,
     else
       changed = ImGui::InputDouble(label.c_str(), &number, 1, 10, "%.2f");
     if (!std::isfinite(number)) number = 0;
+    value = std::clamp(number, lower, upper);
+    finished = ImGui::IsItemDeactivatedAfterEdit();
+  } else if (op == "integer") {
+    const int lower = Integer(arg(2), 0);
+    const int upper = Integer(arg(3), 100);
+    if (lower > upper) throw std::runtime_error("Invalid integer widget range");
+    int number = std::clamp(Integer(value, lower), lower, upper);
+    changed = ImGui::InputInt(label.c_str(), &number);
     value = std::clamp(number, lower, upper);
     finished = ImGui::IsItemDeactivatedAfterEdit();
   } else if (op == "checkbox") {

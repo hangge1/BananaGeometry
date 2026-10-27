@@ -17,6 +17,14 @@ function M.attach(ctx, host)
   ctx.copy = function(value)
     return copy_value(value, host.array)
   end
+  --- Adds missing creation settings during initialization or compatible loading.
+  function ctx:ensure_parameters(defaults)
+    for key, value in pairs(defaults) do
+      if self.state.params[key] == nil then
+        self.state.params[key] = self.copy(value)
+      end
+    end
+  end
   function ctx:begin_edit(label)
     host.begin_edit(label)
   end

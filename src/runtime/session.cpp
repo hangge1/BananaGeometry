@@ -268,6 +268,13 @@ void Session::Restore(const Document& document) {
   view = document.view;
   ResetInteraction();
   if (!Call("on_load")) throw std::runtime_error(error_);
+  // Compatible default additions become the loaded clean baseline, rather
+  // than existing only in Lua and disappearing on the next undo or save.
+  if (editing_)
+    throw std::runtime_error("on_load left an edit transaction open");
+  auto restored = ReadState();
+  ValidateState(restored);
+  history_.Reset(std::move(restored));
 }
 std::vector<std::filesystem::path> DiscoverCases(
     const std::filesystem::path& directory) {

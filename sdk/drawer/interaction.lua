@@ -91,29 +91,6 @@ function M.attach(ctx)
       temp.drag_offset = nil
     end
   end
-  ---@param kind string
-  ---@param count integer Number of clicks per completed object.
-  ---@param event DrawerEvent
-  ---@param style? table
-  function ctx:draw_event(kind, count, event, style)
-    self.temp.pointer = { x = event.x, y = event.y }
-    if event.type == 'key' and event.key == 'escape' then
-      self.temp = {}
-      return
-    end
-    if event.type ~= 'down' or (event.button and event.button ~= 1) then
-      return
-    end
-    self.temp.pending = self.temp.pending or self.array()
-    table.insert(self.temp.pending, { x = event.x, y = event.y })
-    if #self.temp.pending == count then
-      local points = self.temp.pending
-      self:edit('创建对象', function()
-        self:add(kind, points, style)
-      end)
-      self.temp.pending = nil
-    end
-  end
   function ctx:render_interaction()
     local object = self:object(self.temp.selected)
     if object then
@@ -128,18 +105,6 @@ function M.attach(ctx)
         self:point(p, { 0.05, 0.09, 0.15, 1 }, 7)
         self:point(p, { 1, 0.82, 0.25, 1 }, 5)
         self:text({ x = p.x + 10 / self.zoom, y = p.y + 12 / self.zoom }, tostring(i))
-      end
-    end
-    local pending = self.temp.pending
-    if pending then
-      for i, p in ipairs(pending) do
-        self:point(p, { 0.3, 0.8, 0.8, 1 }, 4)
-        if i > 1 then
-          self:line(pending[i - 1], p)
-        end
-      end
-      if self.temp.pointer then
-        self:line(pending[#pending], self.temp.pointer, { 0.3, 0.8, 0.8, 1 })
       end
     end
   end

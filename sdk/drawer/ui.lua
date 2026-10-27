@@ -10,6 +10,7 @@ function M.attach(ctx, host)
     'same_line',
     'slider',
     'number',
+    'integer',
     'checkbox',
     'input',
     'combo',
@@ -36,6 +37,23 @@ function M.attach(ctx, host)
       self.temp.parameter = nil
     end
     return self.state.params[key]
+  end
+  function ctx:creation_parameter(label, key, kind, ...)
+    local before = self.state.params[key]
+    local value = self:parameter(label, key, kind, ...)
+    if value ~= before then
+      self:reset_drawing()
+    end
+    return value
+  end
+  function ctx:mode_buttons()
+    if self.ui.button('绘制模式') then
+      self:set_mode('draw')
+    end
+    self.ui.same_line()
+    if self.ui.button('调整模式') then
+      self:set_mode('edit')
+    end
   end
 end
 
