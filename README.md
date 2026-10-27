@@ -16,6 +16,7 @@
 | [实施计划](docs/implementation-plan.md) | 分阶段任务、依赖关系与验证清单 |
 | [贡献指南](AGENTS.md) | 后续开发、文档维护与验证约定 |
 | [开发规则](docs/development-rules.md) | 项目内 skill、Git、日志和测试原则 |
+| [代码与注释规范](docs/coding-style.md) | Google C++、Lua 工程风格、注释契约与检查规则 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
 | [增量版本记录](docs/version-history.md) | 首版分步提交与每步独立验证证据 |
