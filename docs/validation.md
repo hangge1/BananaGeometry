@@ -38,6 +38,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/check-porta
 
 构建入口在编译后显式同步本次配置目录中的 SDK 和用例，记录 `stage-sdk` / `stage-cases` 命令；仅改 Lua 时也会更新，避免原生截图或窗口检查读取未重新链接时遗留的副本。闭合专项可用 `-Scene bezier-closed,bezier-closed-draw`。
 
+平滑专项为 `-Scene bezier-smooth,bezier-smooth-draw`，分别覆盖选中后的接点/切向显示和四阶 2/3 落点预览；场景和低层/交互断言均进入仓库，图片生成不等同于人工验收通过。
+
 原生 smoke 模式忽略本机偏好，默认验证 exe 旁示例。`capture-screenshots.ps1 -CaseDirectory cases` 可验证指定用例目录，SDK 仍来自宿主；`-Workspace` 保留兼容。所选目录会记录到命令证据中。测试使用替代桌面操作验证编辑路径，不自动启动真实编辑器或系统目录选择器。
 
 ## 路径与命名

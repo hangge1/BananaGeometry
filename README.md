@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-截至 2026-10-28，已实现 Windows 宿主、Lua SDK、三个示例用例、模式反馈、普通闭合贝塞尔和 CTest 测试。阶段验证与限制见[开发日志](docs/development-log.md)。
+截至 2026-10-28，已实现 Windows 宿主、Lua SDK、三个示例用例、模式反馈、普通/平滑闭合贝塞尔和 CTest 测试。阶段验证与限制见[开发日志](docs/development-log.md)。
 
 ## 文档入口
 
@@ -21,7 +21,8 @@
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [用例目录与编辑](docs/case-directories.md) | 统一加载、记住目录、编辑当前脚本 |
 | [交互模式反馈](docs/interaction-mode-proposal.md) | 模式选中状态、画布标识、动态提示和十字光标 |
-| [贝塞尔闭合方案](docs/bezier-closure-proposal.md) | 开闭创建、接点编辑与后续平滑边界 |
+| [贝塞尔闭合方案](docs/bezier-closure-proposal.md) | 开闭创建与普通闭合接点编辑 |
+| [贝塞尔平滑接点](docs/bezier-smooth-proposal.md) | 四阶起的平滑闭合、切向联动与数据契约 |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
 | [本轮人工验收](docs/manual-acceptance.md) | 多边形、可变阶数贝塞尔及交互式 Gallery 的验收步骤 |
 | [验证工具与产物](docs/validation.md) | 可复用验证入口、场景、运行报告和临时文件管理 |
@@ -66,7 +67,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 
 - 左侧“新建实例”或顶部“新建画布”选择用例；每个标签数据独立。
 - 多边形设置 3–256 个顶点，或自由落点后 Enter / 右键完成；贝塞尔设置 1–32 阶，落下阶数加一个控制点。
-- 贝塞尔和 Gallery 可选择闭合曲线（3–32 阶），点击阶数个独立控制点自动回到起点；调整面板提供闭合/断开，拖动闭合接点时首尾联动。普通闭合允许拐角，尚不提供平滑约束。
+- 贝塞尔和 Gallery 可选择闭合曲线（3–32 阶），点击阶数个独立控制点自动回到起点；调整面板提供闭合/断开，拖动闭合接点时首尾联动。
+- 闭合后可勾选“平滑接点”（4–32 阶），四阶只需点击三个独立点。两侧切向镜像联动，拖接点连同两侧一起移动；取消平滑保留形状，断开同时解除平滑。默认仍为普通闭合。
 - Gallery 从空画布选择图元交互绘制，可设置点数、阶数、文字、大小和样式；“插入演示图元”提供参考场景。
 - 调整模式单击图形后显示金色高亮和控制点；Gallery 的文字可在整个文字区域内按下拖动，Esc 取消。
 - 模式按钮标记“当前”，画布左上角显示模式和下一步提示；绘制时画布内显示十字，临时平移显示移动光标。重复点击当前模式不取消操作。
@@ -81,7 +83,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 
 ## 自动化验证
 
-Catch2 + CTest 包含 107 个值、历史、视图、Lua、文档、曲线闭合、千级对象、模式、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 118 个值、历史、视图、Lua、文档、曲线闭合与平滑、千级对象、模式、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
