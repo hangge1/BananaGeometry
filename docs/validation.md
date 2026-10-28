@@ -9,6 +9,7 @@
 | 能力 | 工程入口 |
 | --- | --- |
 | 全流程调度 | `tools/validate.ps1` |
+| 暂存文件树的隔离检查与构建 | `tools/validation/check-index.ps1`，详见[分步提交验证](staged-validation.md) |
 | 运行编号、日志、源码标识、退出码 | `tools/validation/common.psm1` |
 | UTF-8 与本地 Markdown 链接 | `tools/validation/check-docs.ps1` |
 | 模块/目标边界的正反向检查 | `tools/validation/check-guards.ps1` |
