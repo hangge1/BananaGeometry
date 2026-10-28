@@ -52,9 +52,14 @@ class Value {
   std::variant<std::monostate, bool, double, std::string, Array, Object> data_;
 };
 
+enum class JsonFormat { kCompact, kIndented };
+
 // These functions reject invalid UTF-8, nonfinite numbers and excessive depth.
 // ParseJson also rejects duplicate keys; neither silently repairs invalid data.
-std::string ToJson(const Value& value);
+// Indented output uses two spaces; neither format appends a final newline.
+// Compact remains the default for internal state-size and history accounting.
+std::string ToJson(const Value& value,
+                   JsonFormat format = JsonFormat::kCompact);
 Value ParseJson(const std::string& text);
 
 }  // namespace drawer

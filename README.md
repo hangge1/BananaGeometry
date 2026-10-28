@@ -79,11 +79,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 - “编辑当前脚本”用系统编辑器打开当前画布的 `main.lua`，没有编辑关联时使用记事本；底部显示实际路径并可复制。
 - “应用脚本修改 F5”重新读取当前用例及模块，重置当前画布和撤销历史；未保存时先提示，失败保留原实例。
 - “更新用例列表”只扫描当前目录，已打开画布和 F5 的来源保持原样。`drawer.exe --cases-dir <目录>` 覆盖本次启动；外部用例无需复制 SDK。详见[用例目录](docs/case-directories.md)。
-- 文档扩展名为 `.drawer.json`，加载到新标签，不保留撤销历史。
+- 文档扩展名为 `.drawer.json`，使用两空格缩进的 UTF-8 JSON；旧单行文件可加载后重新保存为可读格式。加载到新标签，不保留撤销历史。
 
 ## 自动化验证
 
-Catch2 + CTest 包含 118 个值、历史、视图、Lua、文档、曲线闭合与平滑、千级对象、模式、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 122 个值、历史、视图、Lua、文档、曲线闭合与平滑、千级对象、模式、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
@@ -91,7 +91,7 @@ Catch2 + CTest 包含 118 个值、历史、视图、Lua、文档、曲线闭合
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
 ```
 
-该命令执行 100 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
+该命令执行 124 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
 
 可复现窗口检查与截图：
 

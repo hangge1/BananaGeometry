@@ -15,7 +15,8 @@ Document ReadDocument(const std::filesystem::path& path) {
 }
 void WriteDocument(const std::filesystem::path& path,
                    const Document& document) {
-  std::string text = ToJson(EncodeDocument(document));
+  std::string text =
+      ToJson(EncodeDocument(document), JsonFormat::kIndented) + '\n';
   if (text.size() > 16 * 1024 * 1024)
     throw std::runtime_error("Document exceeds 16 MiB");
   // Write beside the destination so replacement stays on the same filesystem.

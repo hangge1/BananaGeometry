@@ -246,7 +246,13 @@ class Parser {
   size_t position_ = 0;
 };
 
-void Write(const Value& value, std::ostream* out, int depth) {
+void WriteIndent(std::ostream* out, int depth, JsonFormat format) {
+  if (format == JsonFormat::kIndented)
+    *out << '\n' << std::string(depth * 2, ' ');
+}
+
+void Write(const Value& value, std::ostream* out, int depth,
+           JsonFormat format) {
   if (depth > 64) throw std::runtime_error("JSON nesting limit exceeded");
   if (value.IsNull())
     *out << "null";
@@ -276,8 +282,10 @@ void Write(const Value& value, std::ostream* out, int depth) {
     for (const auto& item : value.Items()) {
       if (!first) *out << ',';
       first = false;
-      Write(item, out, depth + 1);
+      WriteIndent(out, depth + 1, format);
+      Write(item, out, depth + 1, format);
     }
+    if (!first) WriteIndent(out, depth, format);
     *out << ']';
   } else {
     *out << '{';
@@ -285,10 +293,12 @@ void Write(const Value& value, std::ostream* out, int depth) {
     for (const auto& [key, item] : value.Fields()) {
       if (!first) *out << ',';
       first = false;
-      Write(key, out, depth + 1);
-      *out << ':';
-      Write(item, out, depth + 1);
+      WriteIndent(out, depth + 1, format);
+      Write(key, out, depth + 1, format);
+      *out << (format == JsonFormat::kIndented ? ": " : ":");
+      Write(item, out, depth + 1, format);
     }
+    if (!first) WriteIndent(out, depth, format);
     *out << '}';
   }
 }
@@ -301,10 +311,10 @@ const Value& Value::At(const std::string& key) const {
   return it == Fields().end() ? kNull : it->second;
 }
 
-std::string ToJson(const Value& value) {
+std::string ToJson(const Value& value, JsonFormat format) {
   std::ostringstream output;
   output.imbue(std::locale::classic());
-  Write(value, &output, 0);
+  Write(value, &output, 0, format);
   return output.str();
 }
 Value ParseJson(const std::string& text) { return Parser(text).Parse(); }

@@ -49,6 +49,8 @@ return {
 
 持久化数据仅支持有限数字、布尔、UTF-8 字符串、连续数组和字符串键对象。不支持循环引用、混合键表、稀疏数组、函数、userdata 或 JSON null。空数组用 `ctx.array()` 创建，空对象使用 `{}`。
 
+保存的 `.drawer.json` 使用两空格缩进和末尾 LF，中文直接保存为 UTF-8，无 BOM；不改动字段与数值精度。旧单行文档可直接加载，重新保存后采用可读格式；内部历史大小仍使用紧凑编码统计。
+
 ```lua
 ctx:edit("修改实验参数", function()
     ctx.state.params.size = 30

@@ -1,4 +1,7 @@
+#include <fstream>
+#include <iterator>
 #include <limits>
+#include <string>
 #include <catch2/catch_test_macros.hpp>
 #include "support/session_fixture.h"
 #include "support/gallery_fixture.h"
@@ -6,6 +9,13 @@
 
 namespace drawer {
 using testing::SourceRoot;
+namespace {
+std::string ReadText(const std::filesystem::path& path) {
+  std::ifstream input(path, std::ios::binary);
+  REQUIRE(input.good());
+  return std::string(std::istreambuf_iterator<char>(input), {});
+}
+}  // namespace
 TEST_CASE_METHOD(testing::TriangleFixture,
                  "Documents preserve editable data and view on Unicode paths",
                  "[document][lua]") {
@@ -14,6 +24,11 @@ TEST_CASE_METHOD(testing::TriangleFixture,
   testing::TestDirectory directory;
   const auto path = directory.Path() / L"中文文档.drawer.json";
   WriteDocument(path, session.SaveData());
+  const auto text = ReadText(path);
+  CHECK(text.substr(0, 2) == "{\n");
+  CHECK(text.find("\n  \"case_id\": \"") != std::string::npos);
+  CHECK(text.substr(text.size() - 2) == "}\n");
+  CHECK(text.find('\r') == std::string::npos);
   Session restored(SourceRoot() / "sdk/drawer.lua",
                    SourceRoot() / "cases/triangle/main.lua");
   restored.Restore(ReadDocument(path));
@@ -22,6 +37,53 @@ TEST_CASE_METHOD(testing::TriangleFixture,
   CHECK(restored.view.zoom == 2.5);
   CHECK_FALSE(restored.Dirty());
   CHECK_FALSE(restored.GetHistory().CanUndo());
+}
+TEST_CASE_METHOD(testing::TriangleFixture,
+                 "Compact documents load and save again as readable UTF-8 JSON",
+                 "[document][json]") {
+  testing::CreateTriangle(&session);
+  testing::ExecuteChecked(&session, R"(
+    ctx:edit('label',function()ctx.state.params.label='中文 [a,b]: {"x":1}'end)
+  )");
+  testing::TestDirectory directory;
+  const auto path = directory.Path() / "legacy.drawer.json";
+  const auto document = session.SaveData();
+  const auto compact = ToJson(EncodeDocument(document));
+  REQUIRE(compact.find('\n') == std::string::npos);
+  testing::WriteScript(path, compact);
+  const auto loaded = ReadDocument(path);
+  WriteDocument(path, loaded);
+  const auto text = ReadText(path);
+  CHECK(text.find('\n') != std::string::npos);
+  CHECK(text.find("中文") != std::string::npos);
+  CHECK(text.substr(0, 3) != "\xef\xbb\xbf");
+  CHECK(ParseJson(text) == EncodeDocument(document));
+  Session restored(SourceRoot() / "sdk/drawer.lua",
+                   SourceRoot() / "cases/triangle/main.lua");
+  restored.Restore(ReadDocument(path));
+  CHECK(restored.State() == session.State());
+  CHECK_FALSE(restored.Dirty());
+}
+TEST_CASE_METHOD(
+    testing::TriangleFixture,
+    "Indented output size limits preserve the existing destination",
+    "[document][json]") {
+  testing::CreateTriangle(&session);
+  testing::TestDirectory directory;
+  const auto path = directory.Path() / "saved.drawer.json";
+  WriteDocument(path, session.SaveData());
+  const auto before = ReadText(path);
+  auto data = session.SaveData();
+  data.state["params"]["padding"] = "";
+  constexpr size_t kLimit = 16 * 1024 * 1024;
+  const auto overhead = ToJson(EncodeDocument(data)).size();
+  data.state["params"]["padding"] = std::string(kLimit - overhead, 'x');
+  REQUIRE(ToJson(EncodeDocument(data)).size() == kLimit);
+  CHECK_THROWS_AS(WriteDocument(path, data), std::runtime_error);
+  CHECK(ReadText(path) == before);
+  CHECK(ReadDocument(path).state == session.State());
+  CHECK(std::distance(std::filesystem::directory_iterator(directory.Path()),
+                      std::filesystem::directory_iterator()) == 1);
 }
 TEST_CASE_METHOD(testing::TriangleFixture,
                  "Incompatible document versions fail before mutation",
