@@ -2,11 +2,13 @@ name: Windows build and tests
 on:
   push:
   pull_request:
+  workflow_dispatch:
 jobs:
   windows:
-    runs-on: windows-latest
+    # build.ps1 uses the VS 2022 generator; windows-latest now ships VS 2026.
+    runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Install format tools
         run: |
           python -m pip install --disable-pip-version-check clang-format==19.1.5
@@ -16,16 +18,16 @@ jobs:
         run: ./tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package
       - name: Check source-only portability
         run: ./tools/validation/check-portability.ps1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: Drawer-Windows-x64
           path: out/Drawer/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: Quality-reports
           path: artifacts/validation/
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         if: failure()
         with:
           name: Failed-validation-inputs

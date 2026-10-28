@@ -72,7 +72,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validate.ps1 -Configur
 - 当前生产安装目录独立执行 `--smoke-test` 成功；只包含应用可执行文件和运行所需脚本、文档、许可证，不安装测试或性能程序。
 - 首版已执行依赖新缓存下载、哈希验证、离线配置和发布目录独立启动。截图确认中文和各类图元；历史结果与提交验证见[开发日志](development-log.md)和[增量版本](version-history.md)。
 
-GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档，通过 `origin/main` 推送触发；远程 CI 结果尚未确认。
+GitHub Actions 已配置格式、边界、构建、测试、测量及报告归档。远程旧运行 `40491964300` 已确认因 VS 2026 镜像与 VS 2022 生成器不匹配，在配置阶段失败。CI 已在本地改为 `windows-2022` 并增加工具链预检查，本地完整 100/100 通过；修复尚未推送，新的云端结果待验证。
 
 ## 尚需人工验收
 

@@ -15,6 +15,7 @@ try {
     if ($Benchmarks -and $Configuration -ne 'Release') { throw 'Use -Configuration Release for performance measurements' }
     $env:DRAWER_VALIDATION_RUN_ID = $context.RunId
     $benchmarkOption = if ($Benchmarks) { 'ON' } else { 'OFF' }
+    Invoke-ValidationCommand $context 'toolchain' powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/validation/check-toolchain.ps1', '-RunId', $context.RunId) | Out-Null
     Invoke-ValidationCommand $context 'modules' powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/check-modules.ps1') | Out-Null
     Invoke-ValidationCommand $context 'configure' cmake @('-S', '.', '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DBUILD_TESTING=ON', "-DDRAWER_BUILD_BENCHMARKS=$benchmarkOption") | Out-Null
     Invoke-ValidationCommand $context 'build' cmake @('--build', $BuildDirectory, '--config', $Configuration, '--parallel') | Out-Null

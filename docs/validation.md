@@ -21,6 +21,10 @@
 
 ## 运行入口
 
+CI 固定使用 `windows-2022`，与构建脚本的 `Visual Studio 17 2022` 生成器对应。GitHub 已将 `windows-latest` / `windows-2025` 迁移至 VS 2026，不能将该别名与固定 VS 2022 生成器混用；见[官方迁移说明](https://github.blog/changelog/2026-05-14-github-actions-upcoming-image-migrations/)。
+
+`build.ps1` 在配置前运行 `tools/validation/check-toolchain.ps1`，检查 CMake 版本和 VS 2022 C++ 组件，并将版本及安装路径写入本轮 `toolchain.json`。工作流提供手动触发入口；checkout/artifact 使用 Node.js 24 版本，避免旧运行时弃用告警。
+
 需要 Windows、PowerShell 5.1+、CMake 3.24+、Visual Studio 2022 C++ 工具和 Windows SDK。格式检查固定 clang-format 19.1.5 与 StyLua 2.6.0，安装方式见[代码规范](coding-style.md)。不需要额外 Python 来运行这些验证脚本。
 
 ```powershell
