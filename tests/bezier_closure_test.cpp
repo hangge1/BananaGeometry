@@ -283,7 +283,8 @@ TEST_CASE_METHOD(
   for (const auto& shape : session.DrawItems()) {
     if (shape.At("text").StringOr("") == "起点/终点") ++seam_labels;
     if (shape.At("kind").StringOr("") == "point" &&
-        shape.At("radius").NumberOr(0) == 7)
+        shape.At("outline").IsBool() && shape.At("outline").Bool() &&
+        shape.At("width").NumberOr(0) == 1.5)
       ++handles;
   }
   CHECK(seam_labels == 1);

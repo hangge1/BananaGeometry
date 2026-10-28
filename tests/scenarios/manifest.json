@@ -3,6 +3,7 @@
   "scenes": [
     {"id": "workspace-multi", "document": true, "fixture": "workspace-multi.json"},
     {"id": "polygon-selection", "case_id": "drawer.triangle", "fixture": "polygon-selection.lua"},
+    {"id": "selection-color-preview", "case_id": "drawer.gallery", "fixture": "selection-color-preview.lua"},
     {"id": "bezier-degree-5", "case_id": "drawer.bezier", "fixture": "bezier-degree-5.lua"},
     {"id": "bezier-closed", "case_id": "drawer.bezier", "fixture": "bezier-closed.lua"},
     {"id": "bezier-closed-draw", "case_id": "drawer.bezier", "fixture": "bezier-closed-draw.lua", "pointer": {"x": 0.75, "y": 0.35}},

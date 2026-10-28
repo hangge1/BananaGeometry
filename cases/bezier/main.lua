@@ -1,5 +1,12 @@
-local defaults =
-  { degree = 3, closed = false, smooth = false, width = 3, samples = 24, palette = 1 }
+local defaults = {
+  degree = 3,
+  closed = false,
+  smooth = false,
+  width = 3,
+  samples = 24,
+  show_samples = false,
+  palette = 1,
+}
 local colors = { { 0.65, 0.5, 1, 1 }, { 0.3, 0.85, 0.65, 1 }, { 1, 0.65, 0.3, 1 } }
 local function initialize(ctx)
   ctx:ensure_parameters(defaults)
@@ -17,7 +24,10 @@ return {
     ctx:mode_buttons()
     ctx:bezier_selection_controls()
     if ctx.mode == 'edit' then
-      ctx:parameter('采样点数', 'samples', 'integer', 2, 256)
+      ctx:parameter('显示采样点', 'show_samples', 'checkbox')
+      if ctx.state.params.show_samples then
+        ctx:parameter('采样点数', 'samples', 'integer', 2, 256)
+      end
       ctx.ui.text('拖曲线整体平移，拖控制点调整；Shift 锁定方向。')
     end
     ctx.ui.separator()
@@ -44,7 +54,7 @@ return {
   on_draw = function(ctx)
     ctx:render()
     local selected = ctx:object(ctx.temp.selected)
-    if selected and selected.kind == 'bezier' then
+    if selected and selected.kind == 'bezier' and ctx.state.params.show_samples then
       local count = math.floor(ctx.state.params.samples)
       for i = 0, count do
         ctx:point(ctx.math.bezier(selected.points, i / count), { 0.3, 0.9, 0.8, 1 }, 2)

@@ -144,27 +144,49 @@ function M.attach(ctx)
       temp.pointer_hint = hint(self, object, handle)
     end
   end
+  -- Guides precede object rendering so coincident curves retain their own color.
+  function ctx:render_guides()
+    local object = self:object(self.temp.selected)
+    if object and object.kind == 'bezier' then
+      local handles = self:handles(object)
+      for i = 2, #handles do
+        self:line(handles[i - 1], handles[i])
+      end
+      if object.closed then
+        self:line(handles[#handles], handles[1])
+      end
+      if object.smooth then
+        self:line(handles[2], handles[#handles], { 0.3, 0.9, 0.8, 1 }, 2)
+      end
+    end
+  end
   function ctx:render_interaction()
     local object = self:object(self.temp.selected)
     if object then
       self:highlight(object)
       local handles = self:handles(object)
-      if object.kind == 'bezier' then
-        for i = 2, #handles do
-          self:line(handles[i - 1], handles[i])
-        end
-        if object.closed then
-          self:line(handles[#handles], handles[1])
-        end
-        if object.smooth then
-          self:line(handles[2], handles[#handles], { 0.3, 0.9, 0.8, 1 }, 2)
-        end
-      end
       for i, p in ipairs(handles) do
         local label = self:handle_label(object, i)
         if label then
-          self:point(p, { 0.05, 0.09, 0.15, 1 }, 7)
-          self:point(p, { 1, 0.82, 0.25, 1 }, 5)
+          local radius = object.kind == 'point'
+              and math.max(1, math.min(64, object.radius or 5)) + 4
+            or 5
+          self:emit({
+            kind = 'point',
+            points = { p },
+            radius = radius,
+            outline = true,
+            width = 3.5,
+            color = { 0.05, 0.09, 0.15, 1 },
+          })
+          self:emit({
+            kind = 'point',
+            points = { p },
+            radius = radius,
+            outline = true,
+            width = 1.5,
+            color = { 1, 0.82, 0.25, 1 },
+          })
           self:text({ x = p.x + 10 / self.zoom, y = p.y + 12 / self.zoom }, label)
         end
       end

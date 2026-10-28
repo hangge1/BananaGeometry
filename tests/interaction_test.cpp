@@ -35,9 +35,14 @@ TEST_CASE_METHOD(GalleryFixture,
     if (item.At("kind").StringOr("") == "rect") {
       ++outlines;
       CHECK_FALSE(item.At("fill").Bool());
-      CHECK(item.At("width").Number() > 2);
+      CHECK(item.At("width").Number() == 1.5);
+      CHECK(item.At("points").Items()[0].At("x").Number() < 100);
+      CHECK(item.At("points").Items()[1].At("x").Number() > 220);
     }
-    if (item.At("kind").StringOr("") == "point") ++handles;
+    if (item.At("kind").StringOr("") == "point") {
+      CHECK(item.At("outline").Bool());
+      ++handles;
+    }
   }
   CHECK(outlines == 1);
   CHECK(handles == 2);
@@ -59,11 +64,18 @@ TEST_CASE_METHOD(GalleryFixture,
   REQUIRE(session.Event(PointerEvent("up", 0, 0)));
   REQUIRE(session.Draw(1));
   int highlighted_lines = 0;
+  int frames = 0;
   for (const auto& item : session.DrawItems()) {
     if (IsHighlight(item) && item.At("kind").StringOr("") == "line")
       ++highlighted_lines;
+    if (IsHighlight(item) && item.At("kind").StringOr("") == "rect") {
+      ++frames;
+      CHECK(item.At("points").Items()[0].At("x").Number() < -25);
+      CHECK(item.At("points").Items()[1].At("x").Number() > 25);
+    }
   }
-  CHECK(highlighted_lines == 2);
+  CHECK(highlighted_lines == 0);
+  CHECK(frames == 1);
   CHECK(session.State() == before);
   CHECK(session.GetHistory().Count() == 0);
   ExecuteChecked(&session, "ctx:set_mode('draw')");
@@ -89,13 +101,15 @@ TEST_CASE_METHOD(GalleryFixture,
   bool preview_found = false;
   bool outline_found = false;
   for (const auto& item : session.DrawItems()) {
-    if (!IsHighlight(item)) continue;
-    if (item.At("kind").StringOr("") == "text") {
+    if (item.At("kind").StringOr("") == "text" &&
+        item.At("text").StringOr("") == "二维图形 SDK") {
+      CHECK(item.At("color") == Value::Array{.8, .85, 1, 1});
       CHECK(item.At("points").Items()[0].At("x").Number() == 100);
       CHECK(item.At("points").Items()[0].At("y").Number() == -65);
       preview_found = true;
     }
-    if (item.At("kind").StringOr("") == "rect") outline_found = true;
+    if (IsHighlight(item) && item.At("kind").StringOr("") == "rect")
+      outline_found = true;
   }
   CHECK(preview_found);
   CHECK(outline_found);

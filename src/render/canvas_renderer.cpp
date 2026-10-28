@@ -67,12 +67,16 @@ void RenderCanvas(const View& view, const std::vector<Value>& items,
         static_cast<float>(std::clamp(item.At("width").NumberOr(2), .5, 32.0));
     const bool fill = item.At("fill").IsBool() && item.At("fill").Bool();
     const ImU32 color = Color(item), fill_color = Color(item, .20f);
-    if (kind == "point")
-      draw->AddCircleFilled(points[0],
-                            static_cast<float>(std::clamp(
-                                item.At("radius").NumberOr(5), 1.0, 64.0)),
-                            color);
-    else if (kind == "text")
+    if (kind == "point") {
+      const bool outline =
+          item.At("outline").IsBool() && item.At("outline").Bool();
+      const float radius = static_cast<float>(std::clamp(
+          item.At("radius").NumberOr(5), 1.0, outline ? 128.0 : 64.0));
+      if (outline)
+        draw->AddCircle(points[0], radius, color, 0, width);
+      else
+        draw->AddCircleFilled(points[0], radius, color);
+    } else if (kind == "text")
       draw->AddText(points[0], color, item.At("text").StringOr("").c_str());
     else if (kind == "bezier" && world.size() >= 2 &&
              world.size() <= kMaxBezierDegree + 1) {

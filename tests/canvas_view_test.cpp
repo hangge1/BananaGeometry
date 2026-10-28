@@ -9,6 +9,7 @@
 
 #include "app/canvas_view.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "render/text_metrics.h"
 #include "support/session_fixture.h"
 #include "support/gallery_fixture.h"
@@ -250,6 +251,31 @@ TEST_CASE_METHOD(CanvasFixture,
   CHECK(session.GetHistory().Count() == history);
   Frame(pointer);
   CHECK(canvas.CrosshairVisible());
+}
+TEST_CASE_METHOD(CanvasFixture,
+                 "Selected point centers remain visible through hollow handles",
+                 "[app][render][selection]") {
+  REQUIRE(session.SelectObject(7));
+  Frame();
+  const auto center = Screen({120, -110});
+  auto* window = ImGui::FindWindowByName("Canvas test");
+  REQUIRE(window);
+  const auto* draw = window->DrawList;
+  auto covers_center = [&](ImU32 color) {
+    for (int i = 0; i + 2 < draw->IdxBuffer.Size; i += 3) {
+      const auto& a = draw->VtxBuffer[draw->IdxBuffer[i]];
+      const auto& b = draw->VtxBuffer[draw->IdxBuffer[i + 1]];
+      const auto& c = draw->VtxBuffer[draw->IdxBuffer[i + 2]];
+      if (a.col == color && b.col == color && c.col == color &&
+          ImTriangleContainsPoint(a.pos, b.pos, c.pos,
+                                  {float(center.x), float(center.y)}))
+        return true;
+    }
+    return false;
+  };
+  CHECK(covers_center(ImGui::ColorConvertFloat4ToU32({1, .65f, .3f, 1})));
+  CHECK_FALSE(
+      covers_center(ImGui::ColorConvertFloat4ToU32({1, .82f, .25f, 1})));
 }
 }  // namespace
 }  // namespace drawer

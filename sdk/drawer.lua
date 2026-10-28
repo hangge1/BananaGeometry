@@ -10,6 +10,7 @@
 ---@field color? number[] RGBA components in the range 0 to 1.
 ---@field width? number Stroke width in screen pixels.
 ---@field fill? boolean
+---@field outline? boolean Hollow point marker; ordinary points stay filled by default.
 ---@field closed? boolean Bezier endpoints are linked; requires degree 3..32.
 ---@field smooth? boolean Closed Bezier has mirrored seam tangents; degree 4..32.
 ---@field text? string UTF-8 content for text objects.
@@ -44,6 +45,7 @@ local M = {}
 local geometry = require('drawer.geometry')
 local state = require('drawer.state')
 local objects = require('drawer.objects')
+local selection = require('drawer.selection')
 local bezier = require('drawer.bezier')
 local bezier_ui = require('drawer.bezier_ui')
 local interaction = require('drawer.interaction')
@@ -68,6 +70,7 @@ function M.new()
   }
   state.attach(ctx, host)
   objects.attach(ctx, host)
+  selection.attach(ctx, host)
   bezier.attach(ctx)
   interaction.attach(ctx)
   drawing.attach(ctx)
@@ -76,6 +79,7 @@ function M.new()
   bezier_ui.attach(ctx)
   inspector.attach(ctx)
   function ctx:render()
+    self:render_guides()
     self:render_objects()
     self:render_interaction()
     self:render_drawing()

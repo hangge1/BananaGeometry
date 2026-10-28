@@ -51,6 +51,7 @@ $luaAllowed = @{
     bezier = @('geometry')
     bezier_ui = @('bezier')
     objects = @('geometry', 'bezier')
+    selection = @('geometry')
     interaction = @()
     drawing = @('bezier')
     ui = @()
