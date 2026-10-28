@@ -42,6 +42,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/check-porta
 
 `-Scene selection-color-preview` 保持选中矩形的颜色事务尚未结束，验证真实 RGBA 预览、外侧框与空心控制点；结合 `text-selection`、`bezier-smooth` 检查文字及曲线不会被金色重画。
 
+`-Scene text-size` 同时显示 12/24/48px 中文文本，选中大字号对象；右侧对象字号与新文字字号独立，文本属性和文本工具均没有无效线宽。场景与真实字体字形/拾取测试共同维护。
+
 原生 smoke 模式忽略本机偏好，默认验证 exe 旁示例。`capture-screenshots.ps1 -CaseDirectory cases` 可验证指定用例目录，SDK 仍来自宿主；`-Workspace` 保留兼容。所选目录会记录到命令证据中。测试使用替代桌面操作验证编辑路径，不自动启动真实编辑器或系统目录选择器。
 
 ## 路径与命名

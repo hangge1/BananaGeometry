@@ -22,7 +22,7 @@ class Session {
  public:
   using UiCallback = std::function<std::vector<Value>(const std::string&,
                                                       const Value::Array&)>;
-  using TextMeasurer = std::function<Point(const std::string&)>;
+  using TextMeasurer = std::function<Point(const std::string&, double)>;
   enum class PointerHint { kNone, kHandle, kMove };
   struct ModeFeedback {
     std::string id, title, hint, notice;
@@ -49,6 +49,7 @@ class Session {
   // history.
   ModeFeedback GetModeFeedback();
   // Supplies the active renderer's text width/height in screen pixels.
+  // The requested font size is in pixels; zero inherits the renderer's font.
   // Called on the session thread; unset headless sessions report zero extent.
   void SetTextMeasurer(TextMeasurer measurer) {
     text_measurer_ = std::move(measurer);

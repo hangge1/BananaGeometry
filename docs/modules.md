@@ -15,7 +15,7 @@
 
 原生实现按职责分文件：文档模型不读写文件，渲染器不运行用例，运行时不调用 ImGui，系统对话框不管理标签。工作区中的 `Application` 协调流程；`CanvasView` 仅借用会话处理输入；`DrawLuaWidget` 只接收与返回通用值。
 
-`render/text_metrics.*` 测量当前渲染字体，`CanvasView` 通过 `Session::SetTextMeasurer` 注入像素尺寸回调；Lua 对象模块将尺寸换算为世界坐标边界。运行时不包含字体或界面 API，选择覆盖层不写入文档。
+`render/text_metrics.*` 统一解析字号并测量当前渲染字体，`CanvasView` 通过 `Session::SetTextMeasurer` 注入 `(text,font_size)` 像素测量回调，0 表示继承字号；Lua 对象模块将结果换算为世界坐标边界。渲染、拾取和选择框共用字号，核心文档校验 6–256px 范围。运行时不包含字体或界面 API，选择反馈不写入文档。
 
 `runtime/session_feedback.cpp` 在 Lua 预算内获取通用模式信息并提供单调时间；`app/canvas_feedback.*` 绘制非交互模式标签和软件十字。反馈由 `ctx.mode` 和 SDK 状态派生，不另存一份界面模式，也不进入文档历史。
 

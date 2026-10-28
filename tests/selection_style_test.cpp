@@ -15,7 +15,8 @@ TEST_CASE_METHOD(
   const int id = GENERATE(1, 2, 3, 4, 5, 6, 7, 8, 9);
   const double alpha = GENERATE(1., .35);
   const Value color = Value::Array{.9, .2, .3, alpha};
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   REQUIRE(session.SelectObject(id));
   const auto before = session.State();
   REQUIRE(session.ObjectControls(
@@ -53,7 +54,8 @@ TEST_CASE_METHOD(
     "[selection][lua]") {
   const int id = GENERATE(1, 2, 3, 6, 7, 9);
   const double zoom = GENERATE(.5, 1., 4.);
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   REQUIRE(session.SelectObject(id));
   REQUIRE(session.Draw(zoom));
   Point lower, upper;

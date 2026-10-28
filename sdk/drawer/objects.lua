@@ -120,12 +120,13 @@ function M.attach(ctx, host)
       radius = radius or 5,
     })
   end
-  function ctx:text(p, text, color)
+  function ctx:text(p, text, color, font_size)
     self:emit({
       kind = 'text',
       points = { p },
       text = text,
       color = color or { 0.8, 0.85, 0.95, 1 },
+      font_size = font_size,
     })
   end
   --- Returns world bounds using the renderer's actual screen-space font size.
@@ -137,7 +138,7 @@ function M.attach(ctx, host)
     if not anchor then
       return nil
     end
-    local width, height = host.measure_text(object.text or '')
+    local width, height = host.measure_text(object.text or '', object.font_size or 0)
     if width <= 0 or height <= 0 then
       return nil
     end
@@ -147,6 +148,14 @@ function M.attach(ctx, host)
       top = anchor.y,
       bottom = anchor.y - height / self.zoom,
     }
+  end
+  --- Resolves the inherited size for the inspector; no persistent default is inserted.
+  function ctx:text_font_size(object)
+    if object and object.font_size then
+      return object.font_size
+    end
+    local _, height = host.measure_text('M')
+    return height > 0 and height or 17
   end
   ---@param object DrawerObject
   ---@param p DrawerPoint

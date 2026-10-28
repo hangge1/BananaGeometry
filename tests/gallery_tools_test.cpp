@@ -158,4 +158,36 @@ TEST_CASE_METHOD(GalleryToolFixture,
   REQUIRE(session.Event(testing::PointerEvent("down", 0, 0)));
   CHECK(session.State().At("objects").Items().empty());
 }
+TEST_CASE_METHOD(
+    GalleryToolFixture,
+    "Gallery text size affects new text independently of existing labels",
+    "[lua][text][gallery]") {
+  Tool("文本");
+  bool saw_size = false, saw_width = false;
+  REQUIRE(
+      session.Controls([&](const std::string& op, const Value::Array& args) {
+        const auto label = args.empty() ? std::string{} : args[0].StringOr("");
+        saw_size |= label == "新文字字号(px)";
+        saw_width |= label == "新图元线宽";
+        return std::vector<Value>{op == "button"    ? Value(false)
+                                  : args.size() > 1 ? args[1]
+                                                    : Value(),
+                                  false, false};
+      }));
+  CHECK(saw_size);
+  CHECK_FALSE(saw_width);
+  Control("新文字字号(px)", 36);
+  REQUIRE(session.Event(testing::PointerEvent("down", 0, 0)));
+  REQUIRE(session.State().At("objects").Items().size() == 1);
+  CHECK(session.State().At("objects").Items()[0].At("font_size").Number() ==
+        36);
+  CHECK(session.State().At("objects").Items()[0].At("width").IsNull());
+  Control("新文字字号(px)", 60);
+  REQUIRE(session.Event(testing::PointerEvent("down", 100, 0)));
+  REQUIRE(session.State().At("objects").Items().size() == 2);
+  CHECK(session.State().At("objects").Items()[0].At("font_size").Number() ==
+        36);
+  CHECK(session.State().At("objects").Items()[1].At("font_size").Number() ==
+        60);
+}
 }  // namespace drawer

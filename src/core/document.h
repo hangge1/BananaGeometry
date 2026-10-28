@@ -4,6 +4,8 @@
 #include "core/value.h"
 #include "core/geometry.h"
 namespace drawer {
+inline constexpr double kMinTextFontSize = 6;
+inline constexpr double kMaxTextFontSize = 256;
 // Editable data and view only; never contains callbacks or execution resources.
 struct Document {
   std::string case_id;

@@ -1,6 +1,8 @@
 #include <windows.h>
 
+#include <algorithm>
 #include <filesystem>
+#include <limits>
 #include <memory>
 
 #include <catch2/catch_approx.hpp>
@@ -25,6 +27,7 @@ struct CanvasFixture {
   Point origin;
   Point size;
   Point text_size;
+  double measured_font_size = 0;
 
   CanvasFixture() {
     testing::PrepareGallery(&session);
@@ -68,7 +71,7 @@ struct CanvasFixture {
     const auto available = ImGui::GetContentRegionAvail();
     origin = {cursor.x, cursor.y};
     size = {available.x, available.y};
-    text_size = MeasureCanvasText("二维图形 SDK##id\nNext");
+    text_size = MeasureCanvasText("二维图形 SDK##id\nNext", measured_font_size);
     io.WantTextInput = text_input;
     canvas.Draw(&session, input_enabled, interaction_enabled);
     ImGui::End();
@@ -143,6 +146,56 @@ TEST_CASE_METHOD(CanvasFixture,
   CHECK(session.view.center.x == 0);
   CHECK(session.view.center.y == 0);
   CHECK(session.GetHistory().Count() == 1);
+}
+TEST_CASE_METHOD(
+    CanvasFixture,
+    "Explicit text sizes match rendered multiline bounds and picking",
+    "[app][render][text]") {
+  const int font_size = GENERATE(12, 32);
+  const double zoom = GENERATE(.5, 2.);
+  ImGui::GetIO().FontGlobalScale = GENERATE(1.f, 1.75f);
+  session.view.zoom = zoom;
+  measured_font_size = font_size;
+  testing::ExecuteChecked(
+      &session,
+      "ctx:edit('font',function()local o=ctx.state.objects[6];"
+      "o.text='二维图形 SDK##id\\nNext';o.font_size=" +
+          std::to_string(font_size) + " end)");
+  const auto before = session.State();
+  const auto history = session.GetHistory().Count();
+  Frame();
+  CHECK(text_size.y == Catch::Approx(font_size * 2));
+  // Inspect actual glyph geometry, so measuring a larger box alone cannot pass.
+  const auto* draw = ImGui::FindWindowByName("Canvas test")->DrawList;
+  const auto color = ImGui::ColorConvertFloat4ToU32({.8f, .85f, 1, 1});
+  float top = std::numeric_limits<float>::max(), bottom = -top;
+  for (const auto& vertex : draw->VtxBuffer)
+    if (vertex.col == color) {
+      top = std::min(top, vertex.pos.y);
+      bottom = std::max(bottom, vertex.pos.y);
+    }
+  CHECK(bottom - top > font_size * 1.25f);
+  CHECK(bottom - top <= font_size * 2.1f);
+  const auto bounds = session.ObjectBounds(6);
+  CHECK(bounds.Items()[1].At("x").Number() ==
+        Catch::Approx(100 + text_size.x / zoom));
+  CHECK(bounds.Items()[1].At("y").Number() ==
+        Catch::Approx(-65 - text_size.y / zoom));
+  const auto pointer =
+      Screen({100 + (text_size.x - 3) / zoom, -65 - (text_size.y - 3) / zoom});
+  Frame(pointer);
+  Frame(pointer, true);
+  REQUIRE(session.SelectedObject() == 6);
+  const Point moved{pointer.x + 24, pointer.y + 18};
+  Frame(moved, true);
+  Frame(moved);
+  const auto& anchor =
+      session.State().At("objects").Items()[5].At("points").Items()[0];
+  CHECK(anchor.At("x").Number() == Catch::Approx(100 + 24 / zoom));
+  CHECK(anchor.At("y").Number() == Catch::Approx(-65 - 18 / zoom));
+  CHECK(session.GetHistory().Count() == history + 1);
+  session.Undo();
+  CHECK(session.State() == before);
 }
 TEST_CASE_METHOD(CanvasFixture,
                  "Canvas keyboard nudges respect selection and navigation",

@@ -62,8 +62,11 @@ void Application::Inspector() {
   } else if (e) {
     ImGui::PushID(e->id);
     if (selection_ == Selection::kObject && s && s->SelectedObject()) {
-      if (ImGui::CollapsingHeader("所选对象", ImGuiTreeNodeFlags_DefaultOpen))
+      if (ImGui::CollapsingHeader("所选对象", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::PushID("object-properties");
         s->ObjectControls(ui);
+        ImGui::PopID();
+      }
     } else {
       if (NameField("实例名称", e->name, &renamed))
         d->RenameInstance(e->id, renamed);
@@ -79,8 +82,11 @@ void Application::Inspector() {
       }
     }
     if (s) {
-      if (ImGui::CollapsingHeader("用例工具", ImGuiTreeNodeFlags_DefaultOpen))
+      if (ImGui::CollapsingHeader("用例工具", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::PushID("case-tools");
         s->Controls(ui);
+        ImGui::PopID();
+      }
       if (ImGui::CollapsingHeader("实例与历史")) {
         ImGui::TextWrapped("脚本：%s", s->Entry().u8string().c_str());
         ImGui::TextWrapped("撤销：%s\n重做：%s",

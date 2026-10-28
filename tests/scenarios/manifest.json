@@ -12,6 +12,7 @@
     {"id": "gallery-empty", "case_id": "drawer.gallery", "fixture": "gallery-empty.lua"},
     {"id": "gallery-reference", "case_id": "drawer.gallery", "fixture": "gallery-reference.lua"},
     {"id": "text-selection", "case_id": "drawer.gallery", "fixture": "text-selection.lua"},
+    {"id": "text-size", "case_id": "drawer.gallery", "fixture": "text-size.lua"},
     {"id": "object-translation", "case_id": "drawer.triangle", "fixture": "object-translation.lua"},
     {"id": "mode-draw", "case_id": "drawer.triangle", "fixture": "mode-draw.lua", "pointer": {"x": 0.8, "y": 0.5}},
     {"id": "mode-custom", "case_id": "drawer.gallery", "fixture": "mode-custom.lua"}

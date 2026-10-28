@@ -70,6 +70,8 @@ function M.style(item, params)
     style.fill = params.fill
   elseif item.kind == 'text' then
     style.text = params.text
+    style.font_size = params.font_size
+    style.width = nil
   elseif item.kind == 'point' then
     style.radius = params.radius
   elseif item.kind == 'cross' then

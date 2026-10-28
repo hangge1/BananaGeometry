@@ -74,9 +74,25 @@ function M.attach(ctx)
       object.display_name = v
     end)
     self.ui.text('类型：' .. object.kind .. '    ID：' .. object.id)
-    property(self, object, 'width', '线宽', 'slider', object.width or 2, function(v)
-      object.width = v
-    end, 0.5, 32)
+    if object.kind == 'text' then
+      property(
+        self,
+        object,
+        'font_size',
+        '字号(px)',
+        'integer',
+        self:text_font_size(object),
+        function(v)
+          object.font_size = v
+        end,
+        6,
+        256
+      )
+    else
+      property(self, object, 'width', '线宽', 'slider', object.width or 2, function(v)
+        object.width = v
+      end, 0.5, 32)
+    end
     property(
       self,
       object,

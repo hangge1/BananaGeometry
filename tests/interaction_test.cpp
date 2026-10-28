@@ -88,7 +88,8 @@ TEST_CASE_METHOD(GalleryFixture,
                  "[lua][interaction][text]") {
   const double zoom = GENERATE(.5, 1., 2., 4.);
   session.view.zoom = zoom;
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   const auto before = session.State();
   const double x = 100 + 100 / zoom;
   const double y = -65 - 12 / zoom;
@@ -131,7 +132,8 @@ TEST_CASE_METHOD(GalleryFixture,
                  "Text clicks and canceled drags do not create edits",
                  "[lua][interaction][text]") {
   const bool escape = GENERATE(false, true);
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   const auto before = session.State();
   REQUIRE(session.Event(PointerEvent("down", 200, -75)));
   REQUIRE(session.Event(PointerEvent("up", 200, -75)));
@@ -153,7 +155,7 @@ TEST_CASE_METHOD(GalleryFixture,
 TEST_CASE_METHOD(GalleryFixture,
                  "Text bounds use measured pixels and mathematical coordinates",
                  "[lua][interaction][text]") {
-  session.SetTextMeasurer([](const std::string& text) {
+  session.SetTextMeasurer([](const std::string& text, double) {
     return text.empty() ? Point{} : Point{120, 40};
   });
   ExecuteChecked(&session, R"(
@@ -173,7 +175,8 @@ TEST_CASE_METHOD(GalleryFixture,
 TEST_CASE_METHOD(GalleryFixture,
                  "Foreground text is picked before an unselected rear handle",
                  "[lua][interaction][text]") {
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   ExecuteChecked(&session, R"(
     ctx:edit('overlap',function()
       ctx.state.objects=ctx.array()
@@ -191,7 +194,7 @@ TEST_CASE_METHOD(GalleryFixture, "Invalid text measurements are rejected",
                  "[lua][text]") {
   const double width = GENERATE(-1., std::numeric_limits<double>::infinity());
   session.SetTextMeasurer(
-      [width](const std::string&) { return Point{width, 20}; });
+      [width](const std::string&, double) { return Point{width, 20}; });
   CHECK_FALSE(session.Execute("ctx:text_bounds(ctx.state.objects[6])"));
   CHECK(session.Error().find("finite and nonnegative") != std::string::npos);
   CHECK_FALSE(session.Dirty());

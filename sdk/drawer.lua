@@ -14,6 +14,7 @@
 ---@field closed? boolean Bezier endpoints are linked; requires degree 3..32.
 ---@field smooth? boolean Closed Bezier has mirrored seam tangents; degree 4..32.
 ---@field text? string UTF-8 content for text objects.
+---@field font_size? number Text height in screen pixels (6..256); absent inherits the canvas font.
 
 ---@class DrawerTextBounds
 ---@field left number

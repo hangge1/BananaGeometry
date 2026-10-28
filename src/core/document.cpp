@@ -48,6 +48,12 @@ void ValidateState(const Value& state) {
       }
     highest = std::max(highest, id);
     const auto kind = shape.At("kind").String();
+    if (kind == "text" && !shape.At("font_size").IsNull()) {
+      const auto& size = shape.At("font_size");
+      if (!size.IsNumber() || size.Number() < kMinTextFontSize ||
+          size.Number() > kMaxTextFontSize)
+        throw std::runtime_error("Text font_size must be within 6..256 pixels");
+    }
     const size_t count = points.IsArray() ? points.Items().size() : 0;
     if (((kind == "point" || kind == "text") && count < 1) ||
         ((kind == "line" || kind == "polyline" || kind == "rect" ||

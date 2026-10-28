@@ -78,8 +78,19 @@ int Session::Array(lua_State* state) {
 }
 int Session::MeasureText(lua_State* state) {
   const auto text = Text(state, 1);
+  double font_size = 0;
+  if (!lua_isnoneornil(state, 2)) {
+    if (!lua_isnumber(state, 2))
+      throw std::runtime_error("Expected text font size");
+    font_size = lua_tonumber(state, 2);
+    if (!std::isfinite(font_size) ||
+        (font_size != 0 &&
+         (font_size < kMinTextFontSize || font_size > kMaxTextFontSize)))
+      throw std::runtime_error("Text font size must be within 6..256 pixels");
+  }
   const auto* self = Self(state);
-  const auto size = self->text_measurer_ ? self->text_measurer_(text) : Point{};
+  const auto size =
+      self->text_measurer_ ? self->text_measurer_(text, font_size) : Point{};
   if (!std::isfinite(size.x) || !std::isfinite(size.y) || size.x < 0 ||
       size.y < 0)
     throw std::runtime_error("Text measurement must be finite and nonnegative");

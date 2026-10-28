@@ -5,6 +5,7 @@
 #include <limits>
 
 #include "core/bezier.h"
+#include "render/text_metrics.h"
 
 namespace drawer {
 namespace {
@@ -77,7 +78,9 @@ void RenderCanvas(const View& view, const std::vector<Value>& items,
       else
         draw->AddCircleFilled(points[0], radius, color);
     } else if (kind == "text")
-      draw->AddText(points[0], color, item.At("text").StringOr("").c_str());
+      draw->AddText(ImGui::GetFont(),
+                    CanvasFontSize(item.At("font_size").NumberOr(0)), points[0],
+                    color, item.At("text").StringOr("").c_str());
     else if (kind == "bezier" && world.size() >= 2 &&
              world.size() <= kMaxBezierDegree + 1) {
       points.clear();

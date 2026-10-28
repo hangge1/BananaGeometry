@@ -12,6 +12,7 @@ local defaults = {
   palette = 1,
   radius = 5,
   text = '二维图形 SDK',
+  font_size = 17,
   size = 25,
 }
 local function initialize(ctx)
@@ -58,12 +59,15 @@ return {
       ctx:bezier_creation_controls()
     elseif item.kind == 'text' then
       ctx:creation_parameter('文字', 'text', 'input')
+      ctx:creation_parameter('新文字字号(px)', 'font_size', 'integer', 6, 256)
     elseif item.kind == 'point' then
       ctx:creation_parameter('点半径', 'radius', 'slider', 2, 20)
     elseif item.kind == 'cross' then
       ctx:creation_parameter('十字大小', 'size', 'integer', 1, 200)
     end
-    ctx:creation_parameter('线宽', 'width', 'slider', 1, 8)
+    if item.kind ~= 'text' then
+      ctx:creation_parameter('新图元线宽', 'width', 'slider', 1, 8)
+    end
     ctx:creation_parameter('配色', 'palette', 'combo', { '蓝色', '紫色', '绿色', '橙色' })
     if
       item.kind == 'polygon'

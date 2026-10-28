@@ -92,9 +92,9 @@ end)
 | `circle` | 圆心与圆周上一点 |
 | `ellipse` | 中心与定义 X/Y 半径的点 |
 | `bezier` | 2–33 个控制点，对应 1–32 阶；阶数由各对象的控制点数量决定 |
-| `text` | 一个锚点；文字由 `text` 字段指定 |
+| `text` | 一个左上角锚点；`text` 为文字，`font_size` 为可选字号（6–256 屏幕像素） |
 
-通用样式为 RGBA `color`（0–1）、屏幕像素 `width` 和布尔 `fill`。坐标统一 X 向右、Y 向上；首版文档约束为 ±1e12，极端缩放和超大几何并非高精度 CAD 渲染保证。
+样式包含 RGBA `color`（0–1）、描边图元的屏幕像素 `width` 和封闭图元的布尔 `fill`。文本不使用线宽；右侧属性按类型显示字号，旧文本的 `width` 仅作为兼容数据保留，不解释为字号。坐标统一 X 向右、Y 向上；首版文档约束为 ±1e12，极端缩放和超大几何并非高精度 CAD 渲染保证。
 
 贝塞尔可设置 `closed=true`，要求 4–33 个实际控制点且最后一点与首点坐标相同；阶数仍为点数减一。普通闭合允许拐角，不增加填充或平滑约束。缺少标记或 `false` 均按开口处理；旧文档中首尾碰巧重合的对象不会自动获得闭合约束。
 
@@ -112,11 +112,20 @@ end)
 
 `ctx:handles(object)` 对闭合贝塞尔只返回独立手柄；`ctx:move_handle(object,index,position,source?)` 在调用者事务内移动可见手柄，自动联动首尾，并保留自定义类型的 `move_handle` 回调。平滑时拖任一侧切向会镜像另一侧，拖接点一起平移两侧；可传不可变的原始对象快照，使连续预览不积累误差。切向落在接点时拒绝该次更新并返回 `false`，保留最后有效位置。`ctx:hit_handle(object,point,tolerance)` 返回可见手柄索引，断开后端点重合时优先末端；`ctx:handle_label(object,index)` 返回手柄标签，重叠起点返回 `nil`，显示时只保留末端。坐标和容差均为世界单位。
 
-`ctx:render()` 批量绘制标准对象、自定义对象和选择控制点。也可调用 `ctx:emit(shape)`、`ctx:draw_batch(shapes)`、`ctx:line(a,b,color,width)`、`ctx:point(p,color,radius)` 和 `ctx:text(p,text,color)` 绘制临时辅助内容，不写入文档。
+`ctx:render()` 批量绘制标准对象、自定义对象和选择控制点。也可调用 `ctx:emit(shape)`、`ctx:draw_batch(shapes)`、`ctx:line(a,b,color,width)`、`ctx:point(p,color,radius)` 和 `ctx:text(p,text,color,font_size?)` 绘制临时辅助内容，不写入文档。
 
-文本以锚点为显示矩形的左上角，字体使用宿主当前字体，字号保持屏幕像素大小。`ctx:text_bounds(object)` 返回世界坐标的 `left/right/top/bottom`；中文、多行和 `##` 按实际文字测量，`top` 大于 `bottom`。空文字或没有字体测量器时返回 `nil`，拾取仍可使用锚点。
+文本字体使用宿主当前字体，显式 `font_size` 为屏幕像素高度，不随画布缩放变化。缺少该字段时沿用宿主当前字号，旧文档显示保持兼容；首次编辑字号才写入字段。`ctx:text_font_size(object?)` 返回显式或继承字号，独立无头运行无测量器时回退 17。Gallery 新建文本默认 17px，可单独配置后续文字；已有对象大小互不影响。
 
-原生宿主在画布帧中注入字体测量器；独立运行 `Session` 的调用方可用 `SetTextMeasurer` 提供屏幕像素宽高，不让运行时依赖 ImGui。未配置时尺寸为零；无头测试应显式注入测量器后验证文字范围。
+`ctx:text_bounds(object)` 返回与当前字号一致的世界坐标 `left/right/top/bottom`；中文、多行和 `##` 按实际文字测量，`top` 大于 `bottom`。空文字或没有字体测量器时返回 `nil`，拾取仍可使用锚点。字号修改属于持久化编辑，一次连续输入只产生一步历史，并能随文档保存。
+
+```lua
+ctx:edit('添加标签', function()
+    ctx:add('text', {{x=100, y=50}}, {text='测试标签', font_size=32, color={1,0.7,0.3,1}})
+end)
+ctx:text({x=0,y=0}, '临时说明', {0.8,0.9,1,1}, 24)
+```
+
+原生宿主在画布帧中注入字体测量器；独立 `Session` 的 `SetTextMeasurer` 回调签名为 `Point(const std::string&, double font_size)`，第二个参数为 0 时继承当前字体大小，否则按指定屏幕像素测量。测量和渲染共用字号解析，运行时不依赖 ImGui。未配置时宽高为零；无头测试应显式注入测量器后验证文字范围。
 
 ## 模式、输入与编辑辅助
 

@@ -39,7 +39,8 @@ TEST_CASE_METHOD(
                                         {120, -110},
                                         {-10, 200},
                                         {15, 0}}};
-  session.SetTextMeasurer([](const std::string&) { return Point{120, 20}; });
+  session.SetTextMeasurer(
+      [](const std::string&, double) { return Point{120, 20}; });
   const auto before = session.State();
   const auto origin = positions[index];
   REQUIRE(session.Event(Drag("down", origin, false, index == 6)));
