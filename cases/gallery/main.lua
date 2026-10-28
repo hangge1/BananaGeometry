@@ -4,6 +4,7 @@ local defaults = {
   kind = 'line',
   vertices = 5,
   degree = 3,
+  closed = false,
   free = false,
   width = 2,
   fill = false,
@@ -26,6 +27,7 @@ return {
   on_load = initialize,
   on_ui = function(ctx)
     ctx:mode_buttons()
+    ctx:bezier_selection_controls()
     local item, index = catalog.current(ctx.state.params.kind)
     local selected, changed = ctx.ui.combo('图元', index, catalog.labels)
     if changed then
@@ -51,7 +53,7 @@ return {
         )
       end
     elseif item.kind == 'bezier' then
-      ctx:creation_parameter('阶数', 'degree', 'integer', 1, 32)
+      ctx:bezier_creation_controls()
     elseif item.kind == 'text' then
       ctx:creation_parameter('文字', 'text', 'input')
     elseif item.kind == 'point' then
@@ -83,8 +85,8 @@ return {
         string.format(
           '已落点：%d / %s',
           ctx:drawing_count(),
-          catalog.count(item, ctx.state.params) == 0 and '自由'
-            or tostring(catalog.count(item, ctx.state.params))
+          catalog.click_count(item, ctx.state.params) == 0 and '自由'
+            or tostring(catalog.click_count(item, ctx.state.params))
         )
       )
     else

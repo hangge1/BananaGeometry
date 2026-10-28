@@ -9,7 +9,7 @@ FetchContent_MakeAvailable(catch2_source)
 configure_file(test_config.h.in generated/test_config.h @ONLY)
 add_executable(drawer_tests value_test.cpp history_test.cpp
     view_test.cpp document_test.cpp session_test.cpp interaction_test.cpp canvas_view_test.cpp
-    bezier_test.cpp drawing_test.cpp case_configuration_test.cpp gallery_tools_test.cpp
+    bezier_test.cpp bezier_closure_test.cpp drawing_test.cpp case_configuration_test.cpp gallery_tools_test.cpp
     translation_test.cpp scenario_test.cpp fixture_probe_test.cpp application_test.cpp
     workspace_paths_test.cpp preferences_test.cpp mode_feedback_test.cpp support/artifacts.cpp)
 target_include_directories(drawer_tests PRIVATE . "${CMAKE_CURRENT_BINARY_DIR}/generated")
