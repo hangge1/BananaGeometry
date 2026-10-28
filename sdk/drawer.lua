@@ -50,6 +50,7 @@ local interaction = require('drawer.interaction')
 local drawing = require('drawer.drawing')
 local ui = require('drawer.ui')
 local modes = require('drawer.modes')
+local inspector = require('drawer.inspector')
 
 -- The host injects this table once per isolated Lua VM.
 ---@diagnostic disable-next-line: undefined-global
@@ -73,6 +74,7 @@ function M.new()
   modes.attach(ctx, host)
   ui.attach(ctx, host)
   bezier_ui.attach(ctx)
+  inspector.attach(ctx)
   function ctx:render()
     self:render_objects()
     self:render_interaction()

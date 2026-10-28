@@ -55,6 +55,7 @@ $luaAllowed = @{
     drawing = @('bezier')
     ui = @()
     modes = @()
+    inspector = @()
 }
 foreach ($name in $luaAllowed.Keys) {
     $path = Join-Path $repositoryRoot "sdk/drawer/$name.lua"

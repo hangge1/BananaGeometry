@@ -4,6 +4,7 @@ return {
   name = '我的用例',
   data_version = 1,
   default_mode = 'draw',
+  edit_mode = 'edit',
   on_init = function(ctx)
     ctx.state.params = { width = 2 }
   end,

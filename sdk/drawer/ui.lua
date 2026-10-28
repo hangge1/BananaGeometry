@@ -21,6 +21,8 @@ function M.attach(ctx, host)
     'checkbox',
     'input',
     'combo',
+    'color',
+    'collapsing_header',
   }) do
     ctx.ui[operation] = function(...)
       return host.ui(operation, ...)

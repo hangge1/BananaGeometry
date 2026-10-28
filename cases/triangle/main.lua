@@ -11,6 +11,7 @@ return {
   name = '多边形 / Polygon',
   data_version = 1,
   default_mode = 'draw',
+  edit_mode = 'edit',
   on_init = initialize,
   on_load = initialize,
   on_ui = function(ctx)

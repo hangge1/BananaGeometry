@@ -110,7 +110,14 @@ Session::Session(const std::filesystem::path& sdk,
     lua_pop(lua_, 1);
     if (id_.empty() || id_.size() > 200 || name_.empty())
       throw std::runtime_error("Case ID and name must be nonempty");
+    lua_getfield(lua_, -1, "edit_mode");
+    if (lua_isstring(lua_, -1)) editor_mode_ = Text(lua_, -1);
+    lua_pop(lua_, 1);
     definition_ = luaL_ref(lua_, LUA_REGISTRYINDEX);
+    lua_rawgeti(lua_, LUA_REGISTRYINDEX, context_);
+    lua_pushlstring(lua_, editor_mode_.data(), editor_mode_.size());
+    lua_setfield(lua_, -2, "editor_mode");
+    lua_pop(lua_, 1);
     if (!ResetInteraction() || !Call("on_init"))
       throw std::runtime_error(error_);
     auto initial = ReadState();
@@ -207,6 +214,10 @@ bool Session::ResetInteraction(ModeReset mode_reset) {
   return true;
 }
 bool Session::Event(const Value& event) {
+  if (readonly_inspection_ && SelectedObject() != 0 &&
+      event.At("key").StringOr("") != "escape")
+    return true;
+  readonly_inspection_ = false;
   lua_rawgeti(lua_, LUA_REGISTRYINDEX, context_);
   lua_pushnumber(lua_, view.zoom);
   lua_setfield(lua_, -2, "zoom");

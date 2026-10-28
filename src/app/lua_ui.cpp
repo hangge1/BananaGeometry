@@ -40,6 +40,25 @@ std::vector<Value> DrawLuaWidget(const std::string& op,
     changed = ImGui::Button(label.c_str());
     return {changed, changed, changed};
   }
+  if (op == "collapsing_header")
+    return {ImGui::CollapsingHeader(label.c_str(),
+                                    value.IsBool() && value.Bool()
+                                        ? ImGuiTreeNodeFlags_DefaultOpen
+                                        : 0),
+            false, false};
+  if (op == "color") {
+    float components[4] = {1, 1, 1, 1};
+    if (value.IsArray() && value.Items().size() == 4)
+      for (int i = 0; i < 4; ++i)
+        components[i] = static_cast<float>(
+            std::clamp(value.Items()[i].NumberOr(1), 0., 1.));
+    changed =
+        ImGui::ColorEdit4(label.c_str(), components, ImGuiColorEditFlags_Float);
+    finished = ImGui::IsItemDeactivatedAfterEdit();
+    return {Value::Array{double(components[0]), double(components[1]),
+                         double(components[2]), double(components[3])},
+            changed, finished};
+  }
   if (op == "mode_button") {
     const bool selected = value.IsBool() && value.Bool();
     const auto text = label + (selected ? "·当前" : "");

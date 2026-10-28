@@ -10,6 +10,7 @@ return {
   name = '贝塞尔曲线 / Bezier',
   data_version = 1,
   default_mode = 'draw',
+  edit_mode = 'edit',
   on_init = initialize,
   on_load = initialize,
   on_ui = function(ctx)

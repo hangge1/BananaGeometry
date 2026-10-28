@@ -37,6 +37,12 @@ class Session {
   // value/changed/ended.
   bool Controls(UiCallback ui);
   bool Draw(double zoom);
+  bool SelectObject(double id);
+  double SelectedObject();
+  bool DeleteSelectedObject();
+  bool ObjectControls(UiCallback ui);
+  Value ObjectBounds(double id);
+  const std::string& EditorMode() const { return editor_mode_; }
   // Transient SDK feedback; has no effect on document data or history.
   PointerHint GetPointerHint() const;
   // Queries SDK feedback with the normal Lua budget; no UI dependency or
@@ -57,6 +63,8 @@ class Session {
   void Undo();
   void Redo();
   void Cancel();
+  // Commit a pending property widget, cancel canvas drafts, retain selection.
+  bool FinishUiEdit();
   // Use a fresh candidate session: an on_load callback can fail after data has
   // been restored. The host keeps the old session until the candidate succeeds.
   void Restore(const Document& document);
@@ -71,6 +79,7 @@ class Session {
   // Render data remains valid until the next Draw or session destruction.
   const std::vector<Value>& DrawItems() const { return draws_; }
   const std::string& Id() const { return id_; }
+  int DataVersion() const { return case_version_; }
   const std::string& Name() const { return name_; }
   const std::string& Error() const { return error_; }
   const std::filesystem::path& Entry() const { return entry_; }
@@ -98,12 +107,16 @@ class Session {
   void SetState(const Value& state);
   Value ReadState() const;
   bool ResetInteraction(ModeReset mode_reset = ModeReset::kDefault);
+  bool ContextCall(const char* method, const Value::Array& arguments,
+                   Value* result = nullptr);
   std::filesystem::path sdk_, entry_;
   lua_State* lua_ = nullptr;
   int context_ = 0;
   int definition_ = 0;
   int case_version_ = 1;
   std::string id_, name_, error_, transaction_label_;
+  std::string editor_mode_;
+  bool readonly_inspection_ = false;
   bool editing_ = false;
   bool initialized_ = false;
   int instruction_count_ = 0;
