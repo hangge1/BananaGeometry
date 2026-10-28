@@ -5,6 +5,7 @@ local defaults = {
   vertices = 5,
   degree = 3,
   closed = false,
+  smooth = false,
   free = false,
   width = 2,
   fill = false,

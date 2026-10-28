@@ -93,13 +93,17 @@ end)
 
 `ctx:set_bezier_closed(object,closed)` 在调用者编辑事务内合并末端至起点或解除联动，保持阶数，返回是否发生变化；闭合至少三阶，不满足条件会报错并由事务回滚。断开不恢复原末端位置，恢复闭合前形状使用撤销。
 
+`smooth=true` 额外要求闭合、5–33 个实际控制点及非零切向，两侧控制点满足 `P[n-1]=2*P[0]-P[1]`。这提供接缝 C1 连续，不保证曲率连续、自交消除或精确圆。缺少标记或 `false` 时保持普通闭合，旧文档不自动获得约束。
+
+`ctx:set_bezier_smooth(object,enabled)` 在调用者事务内启用/解除镜像约束，保持阶数，返回是否改变。启用优先保留第二个实际控制点；若它与接点重合，则使用另一侧有效切向补齐。两侧均重合或低于四阶会报错，UI 提示先调整控制点。取消只解除约束，保持坐标；断开接点同时将 `smooth` 置为 `false`。
+
 ```lua
 ctx:edit('闭合曲线', function()
   ctx:set_bezier_closed(ctx:object(id), true)
 end)
 ```
 
-`ctx:handles(object)` 对闭合贝塞尔只返回独立手柄；`ctx:move_handle(object,index,position)` 在调用者事务内移动可见手柄，自动联动首尾，并保留自定义类型的 `move_handle` 回调。`ctx:hit_handle(object,point,tolerance)` 返回可见手柄索引，断开后端点重合时优先末端；`ctx:handle_label(object,index)` 返回手柄标签，重叠起点返回 `nil`，显示时只保留末端。坐标和容差均为世界单位。
+`ctx:handles(object)` 对闭合贝塞尔只返回独立手柄；`ctx:move_handle(object,index,position,source?)` 在调用者事务内移动可见手柄，自动联动首尾，并保留自定义类型的 `move_handle` 回调。平滑时拖任一侧切向会镜像另一侧，拖接点一起平移两侧；可传不可变的原始对象快照，使连续预览不积累误差。切向落在接点时拒绝该次更新并返回 `false`，保留最后有效位置。`ctx:hit_handle(object,point,tolerance)` 返回可见手柄索引，断开后端点重合时优先末端；`ctx:handle_label(object,index)` 返回手柄标签，重叠起点返回 `nil`，显示时只保留末端。坐标和容差均为世界单位。
 
 `ctx:render()` 批量绘制标准对象、自定义对象和选择控制点。也可调用 `ctx:emit(shape)`、`ctx:draw_batch(shapes)`、`ctx:line(a,b,color,width)`、`ctx:point(p,color,radius)` 和 `ctx:text(p,text,color)` 绘制临时辅助内容，不写入文档。
 
@@ -118,6 +122,8 @@ end)
 `ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集固定数量的点击，完成后创建对象并继续绘制；`count=0` 为自由多边形/折线，Enter、右键或 `ctx:finish_drawing()` 完成，至少需要 3/2 个点。上限 256 点自动完成，贝塞尔固定点数为 2–33。
 
 闭合贝塞尔仍传实际控制点总数，例如 `ctx:draw_event('bezier',4,event,{closed=true})`：收集三次点击并自动补齐首点，生成三阶闭合曲线。进度显示三次点击；开闭变化也会取消旧构造，预览与最终曲线使用相同的闭合规则。
+
+平滑闭合传 `ctx:draw_event('bezier',5,event,{closed=true,smooth=true})`：四阶收集三次点击，自动补齐镜像切向和重合末端。一般 n 阶收集 n−1 次点击，进度和预览同步；第二点与起点重合时提示重新落点，不丢失已完成输入。改变平滑设置会取消未完成构造。低层 `ctx:add` 接收实际完整控制点，不自动补齐；非法数据在提交/加载时拒绝。
 
 `ctx:drawing_count()` 返回已落点数量；`ctx:reset_drawing()` 清除未完成构造，保留其他临时状态。切换种类或点数也会清除未完成点列，Esc 取消。`ctx:render()` 显示临时图元预览及控制点；`ctx:draw_object(object)` 可复用标准或自定义对象的绘制，无需加入文档。
 
@@ -171,6 +177,8 @@ ctx.ui.combo(label, index, {"选项一", "选项二"}) -- 索引从 1 开始
 创建设置使用 `ctx:creation_parameter(...)`，参数相同，但变化时取消未完成绘制。`ctx:mode_buttons()` 提供绘制/调整按钮；离散操作隐藏正在编辑的参数之前，可调用 `ctx:finish_parameter()` 提交该参数，避免事务跨控件混合。
 
 `ctx:bezier_creation_controls()` 读取 `state.params.degree/closed`（用例先提供默认值），生成开闭选择、阶数与落点说明；切换到闭合会将低于三阶的新建设置提升为三阶，两项共用一步历史。`ctx:bezier_selection_controls()` 在调整模式显示选中贝塞尔的状态及闭合/断开按钮，建议紧接模式按钮放置；操作保持选择且不改变新建偏好。`ctx:notify(message)` 显示约 2.5 秒的非模态提示，不写入历史。
+
+两个贝塞尔控件助手还使用默认 `state.params.smooth=false`。闭合后才显示新曲线平滑选项，启用时新建阶数至少四阶并共用一步历史；选中对象单独设置，不改变新建偏好。新建与选中的平滑复选框使用不同内部 ID，避免同一面板冲突。已有三阶对象说明限制，不自动升阶。
 
 Gallery 的 `catalog.lua` 声明稳定种类、名称、落点数量、样式和自定义注册，`sample_scene.lua` 提供可选参考场景。新增一种图元时，在目录中添加条目并注册对应自定义对象即可进入选择器；特有参数由该用例控件设置，不需要修改宿主。
 

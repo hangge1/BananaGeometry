@@ -76,12 +76,16 @@ function M.style(item, params)
     style.size = params.size
   elseif item.kind == 'bezier' then
     style.closed = params.closed
+    style.smooth = params.closed and params.smooth
   end
   return style
 end
 function M.click_count(item, params)
   local count = M.count(item, params)
-  return item.kind == 'bezier' and params.closed and count - 1 or count
+  if item.kind == 'bezier' and params.closed then
+    count = count - 1 - (params.smooth and 1 or 0)
+  end
+  return count
 end
 function M.register(ctx)
   ctx:register_type('cross', {

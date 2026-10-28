@@ -1,4 +1,5 @@
-local defaults = { degree = 3, closed = false, width = 3, samples = 24, palette = 1 }
+local defaults =
+  { degree = 3, closed = false, smooth = false, width = 3, samples = 24, palette = 1 }
 local colors = { { 0.65, 0.5, 1, 1 }, { 0.3, 0.85, 0.65, 1 }, { 1, 0.65, 0.3, 1 } }
 local function initialize(ctx)
   ctx:ensure_parameters(defaults)
@@ -35,6 +36,7 @@ return {
         color = colors[ctx.state.params.palette],
         width = ctx.state.params.width,
         closed = ctx.state.params.closed,
+        smooth = ctx.state.params.closed and ctx.state.params.smooth,
       })
     end
   end,

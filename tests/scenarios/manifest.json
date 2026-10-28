@@ -5,6 +5,8 @@
     {"id": "bezier-degree-5", "case_id": "drawer.bezier", "fixture": "bezier-degree-5.lua"},
     {"id": "bezier-closed", "case_id": "drawer.bezier", "fixture": "bezier-closed.lua"},
     {"id": "bezier-closed-draw", "case_id": "drawer.bezier", "fixture": "bezier-closed-draw.lua", "pointer": {"x": 0.75, "y": 0.35}},
+    {"id": "bezier-smooth", "case_id": "drawer.bezier", "fixture": "bezier-smooth.lua"},
+    {"id": "bezier-smooth-draw", "case_id": "drawer.bezier", "fixture": "bezier-smooth-draw.lua"},
     {"id": "gallery-empty", "case_id": "drawer.gallery", "fixture": "gallery-empty.lua"},
     {"id": "gallery-reference", "case_id": "drawer.gallery", "fixture": "gallery-reference.lua"},
     {"id": "text-selection", "case_id": "drawer.gallery", "fixture": "text-selection.lua"},
