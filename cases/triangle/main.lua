@@ -26,7 +26,7 @@ return {
     ctx:creation_parameter('配色', 'palette', 'combo', { '蓝色', '绿色', '橙色' })
     if ctx.mode == 'draw' then
       if ctx.state.params.free then
-        ctx.ui.text('依次落点，Enter / 右键完成，Esc 取消。')
+        ctx.ui.text('依次落点, Enter / 右键完成, Esc 取消。')
         if ctx:drawing_count() >= 3 and ctx.ui.button('完成多边形') then
           ctx:finish_drawing()
         end
