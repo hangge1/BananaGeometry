@@ -56,6 +56,18 @@ void ValidateState(const Value& state) {
         ((kind == "triangle" || kind == "polygon") && count < 3) ||
         (kind == "bezier" && (count < 2 || count > kMaxBezierDegree + 1)))
       throw std::runtime_error("Invalid point count for " + kind);
+    if (kind == "bezier") {
+      const auto& closed = shape.At("closed");
+      if (!closed.IsNull() && !closed.IsBool())
+        throw std::runtime_error("Bezier closed must be a boolean");
+      if (closed.IsBool() && closed.Bool()) {
+        if (count < 4 ||
+            points.Items().front().At("x") != points.Items().back().At("x") ||
+            points.Items().front().At("y") != points.Items().back().At("y"))
+          throw std::runtime_error(
+              "Closed Bezier requires degree 3..32 and identical endpoints");
+      }
+    }
   }
   auto next = state.At("next_id").NumberOr(0);
   if (next <= highest || next > 9007199254740991.0 || std::floor(next) != next)

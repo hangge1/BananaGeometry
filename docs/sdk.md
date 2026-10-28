@@ -89,6 +89,18 @@ end)
 
 通用样式为 RGBA `color`（0–1）、屏幕像素 `width` 和布尔 `fill`。坐标统一 X 向右、Y 向上；首版文档约束为 ±1e12，极端缩放和超大几何并非高精度 CAD 渲染保证。
 
+贝塞尔可设置 `closed=true`，要求 4–33 个实际控制点且最后一点与首点坐标相同；阶数仍为点数减一。普通闭合允许拐角，不增加填充或平滑约束。缺少标记或 `false` 均按开口处理；旧文档中首尾碰巧重合的对象不会自动获得闭合约束。
+
+`ctx:set_bezier_closed(object,closed)` 在调用者编辑事务内合并末端至起点或解除联动，保持阶数，返回是否发生变化；闭合至少三阶，不满足条件会报错并由事务回滚。断开不恢复原末端位置，恢复闭合前形状使用撤销。
+
+```lua
+ctx:edit('闭合曲线', function()
+  ctx:set_bezier_closed(ctx:object(id), true)
+end)
+```
+
+`ctx:handles(object)` 对闭合贝塞尔只返回独立手柄；`ctx:move_handle(object,index,position)` 在调用者事务内移动可见手柄，自动联动首尾，并保留自定义类型的 `move_handle` 回调。`ctx:hit_handle(object,point,tolerance)` 返回可见手柄索引，断开后端点重合时优先末端；`ctx:handle_label(object,index)` 返回手柄标签，重叠起点返回 `nil`，显示时只保留末端。坐标和容差均为世界单位。
+
 `ctx:render()` 批量绘制标准对象、自定义对象和选择控制点。也可调用 `ctx:emit(shape)`、`ctx:draw_batch(shapes)`、`ctx:line(a,b,color,width)`、`ctx:point(p,color,radius)` 和 `ctx:text(p,text,color)` 绘制临时辅助内容，不写入文档。
 
 文本以锚点为显示矩形的左上角，字体使用宿主当前字体，字号保持屏幕像素大小。`ctx:text_bounds(object)` 返回世界坐标的 `left/right/top/bottom`；中文、多行和 `##` 按实际文字测量，`top` 大于 `bottom`。空文字或没有字体测量器时返回 `nil`，拾取仍可使用锚点。
@@ -104,6 +116,8 @@ end)
 十字仅在可输入且鼠标位于画布时显示，移到控件或进入文字编辑/模态操作时恢复普通指针。临时平移不切换模式。直接调用 `ctx:set_mode()` 仍保留原先取消操作、清理临时状态的契约，和点击已激活按钮的无操作行为不同。
 
 `ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集固定数量的点击，完成后创建对象并继续绘制；`count=0` 为自由多边形/折线，Enter、右键或 `ctx:finish_drawing()` 完成，至少需要 3/2 个点。上限 256 点自动完成，贝塞尔固定点数为 2–33。
+
+闭合贝塞尔仍传实际控制点总数，例如 `ctx:draw_event('bezier',4,event,{closed=true})`：收集三次点击并自动补齐首点，生成三阶闭合曲线。进度显示三次点击；开闭变化也会取消旧构造，预览与最终曲线使用相同的闭合规则。
 
 `ctx:drawing_count()` 返回已落点数量；`ctx:reset_drawing()` 清除未完成构造，保留其他临时状态。切换种类或点数也会清除未完成点列，Esc 取消。`ctx:render()` 显示临时图元预览及控制点；`ctx:draw_object(object)` 可复用标准或自定义对象的绘制，无需加入文档。
 
@@ -155,6 +169,8 @@ ctx.ui.combo(label, index, {"选项一", "选项二"}) -- 索引从 1 开始
 持久化参数推荐使用 `ctx:parameter(label,key,kind,...)`，它绑定 `ctx.state.params[key]`，并将一次滑动或文本编辑组合为一个事务。参数须先在初始化中赋默认值。例如 `ctx:parameter("线宽","width","slider",1,8)`。
 
 创建设置使用 `ctx:creation_parameter(...)`，参数相同，但变化时取消未完成绘制。`ctx:mode_buttons()` 提供绘制/调整按钮；离散操作隐藏正在编辑的参数之前，可调用 `ctx:finish_parameter()` 提交该参数，避免事务跨控件混合。
+
+`ctx:bezier_creation_controls()` 读取 `state.params.degree/closed`（用例先提供默认值），生成开闭选择、阶数与落点说明；切换到闭合会将低于三阶的新建设置提升为三阶，两项共用一步历史。`ctx:bezier_selection_controls()` 在调整模式显示选中贝塞尔的状态及闭合/断开按钮，建议紧接模式按钮放置；操作保持选择且不改变新建偏好。`ctx:notify(message)` 显示约 2.5 秒的非模态提示，不写入历史。
 
 Gallery 的 `catalog.lua` 声明稳定种类、名称、落点数量、样式和自定义注册，`sample_scene.lua` 提供可选参考场景。新增一种图元时，在目录中添加条目并注册对应自定义对象即可进入选择器；特有参数由该用例控件设置，不需要修改宿主。
 

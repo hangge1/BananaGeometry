@@ -1,5 +1,4 @@
 -- Selection, handle editing and object translation share one pointer gesture.
-local distance = require('drawer.geometry').distance
 local M = {}
 local drag_threshold = 3 -- Screen pixels; clicks and small jitters stay selection-only.
 local arrows = {
@@ -11,16 +10,9 @@ local arrows = {
 
 local function pick(ctx, event)
   local tolerance = 9 / ctx.zoom
-  local function handle(object)
-    for index, point in ipairs(ctx:handles(object)) do
-      if distance(event, point) <= tolerance then
-        return index
-      end
-    end
-  end
   local selected = ctx:object(ctx.temp.selected)
   if selected then
-    local index = handle(selected)
+    local index = ctx:hit_handle(selected, event, tolerance)
     if index then
       if event.alt then
         return selected
@@ -30,7 +22,7 @@ local function pick(ctx, event)
   end
   for i = #ctx.state.objects, 1, -1 do
     local object = ctx.state.objects[i]
-    local index = handle(object)
+    local index = ctx:hit_handle(object, event, tolerance)
     if index then
       if event.alt then
         return object
@@ -65,12 +57,7 @@ local function update_drag(ctx, event)
   drag.started = true
   if drag.handle then
     local position = { x = drag.anchor.x + delta.x, y = drag.anchor.y + delta.y }
-    local custom = ctx.types[object.kind]
-    if custom and custom.move_handle then
-      custom.move_handle(ctx, object, drag.handle, position)
-    else
-      object.points[drag.handle] = position
-    end
+    ctx:move_handle(object, drag.handle, position)
   else
     if event.shift then
       if math.abs(delta.x) >= math.abs(delta.y) then
@@ -166,11 +153,17 @@ function M.attach(ctx)
         for i = 2, #handles do
           self:line(handles[i - 1], handles[i])
         end
+        if object.closed then
+          self:line(handles[#handles], handles[1])
+        end
       end
       for i, p in ipairs(handles) do
-        self:point(p, { 0.05, 0.09, 0.15, 1 }, 7)
-        self:point(p, { 1, 0.82, 0.25, 1 }, 5)
-        self:text({ x = p.x + 10 / self.zoom, y = p.y + 12 / self.zoom }, tostring(i))
+        local label = self:handle_label(object, i)
+        if label then
+          self:point(p, { 0.05, 0.09, 0.15, 1 }, 7)
+          self:point(p, { 1, 0.82, 0.25, 1 }, 5)
+          self:text({ x = p.x + 10 / self.zoom, y = p.y + 12 / self.zoom }, label)
+        end
       end
     end
   end

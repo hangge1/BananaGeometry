@@ -40,9 +40,13 @@ function M.attach(ctx, host)
     self:cancel_edit()
     self.mode = mode
     if canceled then
-      self.temp.mode_notice = { text = canceled, expires = host.clock() + 2.5 }
+      self:notify(canceled)
     end
     return true
+  end
+  --- Brief non-modal feedback, excluded from document data and history.
+  function ctx:notify(message)
+    self.temp.mode_notice = { text = message, expires = host.clock() + 2.5 }
   end
   function ctx:mode_feedback()
     local definition = definitions[self.mode] or { label = tostring(self.mode), cursor = 'arrow' }
@@ -51,6 +55,14 @@ function M.attach(ctx, host)
       local spec = self.temp.drawing
       if spec then
         title = title .. ' · ' .. (kind_names[spec.kind] or spec.kind)
+        if spec.kind == 'bezier' then
+          title = title
+            .. string.format(
+              ' · %d 阶%s',
+              spec.closed and spec.count or spec.count - 1,
+              spec.closed and '闭合' or '开口'
+            )
+        end
       end
       if not hint then
         if spec and spec.count > 0 then
@@ -73,6 +85,10 @@ function M.attach(ctx, host)
           selected and (' · 已选中' .. (kind_names[selected.kind] or selected.kind))
           or ' · 未选择对象'
         )
+      if selected and selected.kind == 'bezier' and selected.closed then
+        title = title .. ' · 已闭合'
+        hint = hint or '拖接点移动首尾，拖其他控制点调整；拖主体平移'
+      end
       hint = hint
         or (
           selected and '拖主体平移，拖控制点调整；Esc 取消'

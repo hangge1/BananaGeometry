@@ -48,8 +48,10 @@ foreach ($file in $files) {
 $luaAllowed = @{
     geometry = @()
     state = @()
-    objects = @('geometry')
-    interaction = @('geometry')
+    bezier = @('geometry')
+    bezier_ui = @()
+    objects = @('geometry', 'bezier')
+    interaction = @()
     drawing = @()
     ui = @()
     modes = @()

@@ -19,6 +19,9 @@ try {
     Invoke-ValidationCommand $context 'modules' powershell @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'tools/check-modules.ps1') | Out-Null
     Invoke-ValidationCommand $context 'configure' cmake @('-S', '.', '-B', $BuildDirectory, '-G', 'Visual Studio 17 2022', '-A', 'x64', '-DBUILD_TESTING=ON', "-DDRAWER_BUILD_BENCHMARKS=$benchmarkOption") | Out-Null
     Invoke-ValidationCommand $context 'build' cmake @('--build', $BuildDirectory, '--config', $Configuration, '--parallel') | Out-Null
+    # POST_BUILD may not run for Lua-only edits; native checks need the current SDK/cases.
+    Invoke-ValidationCommand $context 'stage-sdk' cmake @('-E', 'copy_directory', 'sdk', "$BuildDirectory/bin/$Configuration/sdk") | Out-Null
+    Invoke-ValidationCommand $context 'stage-cases' cmake @('-E', 'copy_directory', 'cases', "$BuildDirectory/bin/$Configuration/cases") | Out-Null
     $report = Join-Path $context.ArtifactDirectory "junit-$($Configuration.ToLowerInvariant()).xml"
     Invoke-ValidationCommand $context 'ctest' ctest @('--test-dir', $BuildDirectory, '-C', $Configuration, '-j', '4', '--output-on-failure', '--output-junit', $report) | Out-Null
     if ($Benchmarks) {

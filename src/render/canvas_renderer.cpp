@@ -79,8 +79,15 @@ void RenderCanvas(const View& view, const std::vector<Value>& items,
       points.clear();
       for (const auto& point : FlattenBezier(world, .75 / view.zoom))
         points.push_back(screen(point));
+      const bool closed = item.At("closed").IsBool() &&
+                          item.At("closed").Bool() &&
+                          world.front().x == world.back().x &&
+                          world.front().y == world.back().y;
+      // Flattening includes the repeated endpoint; the closed stroke joins it
+      // once.
+      if (closed) points.pop_back();
       draw->AddPolyline(points.data(), static_cast<int>(points.size()), color,
-                        0, width);
+                        closed ? ImDrawFlags_Closed : 0, width);
     } else if (kind == "rect" && points.size() >= 2) {
       ImVec2 a(std::min(points[0].x, points[1].x),
                std::min(points[0].y, points[1].y));

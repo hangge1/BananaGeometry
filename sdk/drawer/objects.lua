@@ -1,5 +1,6 @@
 -- Object registration, primitives and hit testing; no interaction state access.
 local geometry = require('drawer.geometry')
+local bezier = require('drawer.bezier')
 local distance = geometry.distance
 local segment_distance = geometry.segment_distance
 
@@ -35,7 +36,42 @@ function M.attach(ctx, host)
     if custom and custom.handles then
       return custom.handles(self, object)
     end
+    if object.kind == 'bezier' then
+      return bezier.handles(object)
+    end
     return object.points or {}
+  end
+  --- Returns the visible handle index, honoring disconnected coincident endpoints.
+  function ctx:hit_handle(object, point, tolerance)
+    if object.kind == 'bezier' and not self.types[object.kind] then
+      local preferred = bezier.preferred_handle(object, point, tolerance)
+      if preferred then
+        return preferred
+      end
+    end
+    for index, handle in ipairs(self:handles(object)) do
+      if distance(point, handle) <= tolerance then
+        return index
+      end
+    end
+  end
+  --- A nil label hides a handle duplicated by a preferred coincident endpoint.
+  function ctx:handle_label(object, index)
+    if object.kind == 'bezier' and not self.types[object.kind] then
+      return bezier.handle_label(object, index)
+    end
+    return tostring(index)
+  end
+  --- Moves a handle within the caller's edit; custom types retain their override.
+  function ctx:move_handle(object, index, position)
+    local custom = self.types[object.kind]
+    if custom and custom.move_handle then
+      custom.move_handle(self, object, index, position)
+    elseif object.kind == 'bezier' then
+      bezier.move_handle(object, index, position)
+    else
+      object.points[index] = self.copy(position)
+    end
   end
   function ctx:can_translate(object)
     local custom = self.types[object.kind]

@@ -10,6 +10,7 @@
 ---@field color? number[] RGBA components in the range 0 to 1.
 ---@field width? number Stroke width in screen pixels.
 ---@field fill? boolean
+---@field closed? boolean Bezier endpoints are linked; requires degree 3..32.
 ---@field text? string UTF-8 content for text objects.
 
 ---@class DrawerTextBounds
@@ -42,6 +43,8 @@ local M = {}
 local geometry = require('drawer.geometry')
 local state = require('drawer.state')
 local objects = require('drawer.objects')
+local bezier = require('drawer.bezier')
+local bezier_ui = require('drawer.bezier_ui')
 local interaction = require('drawer.interaction')
 local drawing = require('drawer.drawing')
 local ui = require('drawer.ui')
@@ -63,10 +66,12 @@ function M.new()
   }
   state.attach(ctx, host)
   objects.attach(ctx, host)
+  bezier.attach(ctx)
   interaction.attach(ctx)
   drawing.attach(ctx)
   modes.attach(ctx, host)
   ui.attach(ctx, host)
+  bezier_ui.attach(ctx)
   function ctx:render()
     self:render_objects()
     self:render_interaction()

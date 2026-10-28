@@ -24,15 +24,20 @@ function M.attach(ctx)
     if #points < minimum then
       return false
     end
+    local controls = self.copy(points)
+    if spec.closed then
+      controls[#controls + 1] = self.copy(controls[1])
+    end
     self:edit('创建对象', function()
-      self:add(spec.kind, points, spec.style)
+      self:add(spec.kind, controls, spec.style)
     end)
     self:reset_drawing()
     return true
   end
 
   --- Fixed count: completes automatically; count=0: polygon/polyline, Enter/right click.
-  --- Changing kind/count cancels unfinished construction without touching history.
+  --- Closed Bezier collects count-1 clicks and appends the start as its last control.
+  --- Changing kind/count/closure cancels unfinished construction without touching history.
   ---@param kind string
   ---@param count integer 0..256; Bezier requires 2..33.
   ---@param event DrawerEvent
@@ -47,11 +52,17 @@ function M.attach(ctx)
       'Free drawing requires polygon/polyline'
     )
     assert(kind ~= 'bezier' or (count >= 2 and count <= 33), 'Bezier requires 2..33 control points')
+    local closed = kind == 'bezier' and style and style.closed == true or false
+    assert(not closed or count >= 4, 'Closed Bezier requires degree 3..32')
+    local clicks = closed and count - 1 or count
     local previous = self.temp.drawing
-    if previous and (previous.kind ~= kind or previous.count ~= count) then
+    if
+      previous and (previous.kind ~= kind or previous.count ~= clicks or previous.closed ~= closed)
+    then
       self:reset_drawing()
     end
-    self.temp.drawing = { kind = kind, count = count, style = self.copy(style or {}) }
+    self.temp.drawing =
+      { kind = kind, count = clicks, closed = closed, style = self.copy(style or {}) }
     if event.type == 'key' and event.key == 'escape' then
       self:reset_drawing()
       return
@@ -74,7 +85,7 @@ function M.attach(ctx)
     end
     self.temp.pending = self.temp.pending or self.array()
     table.insert(self.temp.pending, { x = event.x, y = event.y })
-    if (count > 0 and #self.temp.pending == count) or #self.temp.pending == max_points then
+    if (clicks > 0 and #self.temp.pending == clicks) or #self.temp.pending == max_points then
       self:finish_drawing()
     end
   end
@@ -90,6 +101,11 @@ function M.attach(ctx)
     end
     if #points >= 2 then
       local preview = self.copy(spec.style)
+      if spec.closed and #points >= 3 then
+        points[#points + 1] = self.copy(points[1])
+      elseif spec.closed then
+        preview.closed = false
+      end
       preview.kind, preview.points = spec.kind, points
       preview.color, preview.fill, preview.width = { 0.3, 0.8, 0.8, 0.8 }, false, 1.5
       if preview.kind == 'polygon' and #points < 3 then
