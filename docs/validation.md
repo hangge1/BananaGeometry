@@ -36,6 +36,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/check-porta
 
 构建入口 `build.ps1` 也使用相同产物布局。单独性能入口为 `tools/run-benchmarks.ps1`；单独截图入口可用 `-Scene polygon-selection` 选择一个场景，以及 `-Executable` 指定已构建的程序。
 
+构建入口在编译后显式同步本次配置目录中的 SDK 和用例，记录 `stage-sdk` / `stage-cases` 命令；仅改 Lua 时也会更新，避免原生截图或窗口检查读取未重新链接时遗留的副本。闭合专项可用 `-Scene bezier-closed,bezier-closed-draw`。
+
 原生 smoke 模式忽略本机偏好，默认验证 exe 旁示例。`capture-screenshots.ps1 -CaseDirectory cases` 可验证指定用例目录，SDK 仍来自宿主；`-Workspace` 保留兼容。所选目录会记录到命令证据中。测试使用替代桌面操作验证编辑路径，不自动启动真实编辑器或系统目录选择器。
 
 ## 路径与命名
