@@ -51,7 +51,7 @@ struct CanvasFixture {
 
   void Frame(Point pointer = {-1000, -1000}, bool pressed = false,
              bool shift = false, bool input_enabled = true,
-             bool text_input = false) {
+             bool text_input = false, bool interaction_enabled = true) {
     auto& io = ImGui::GetIO();
     io.AddMousePosEvent(static_cast<float>(pointer.x),
                         static_cast<float>(pointer.y));
@@ -69,7 +69,7 @@ struct CanvasFixture {
     size = {available.x, available.y};
     text_size = MeasureCanvasText("二维图形 SDK##id\nNext");
     io.WantTextInput = text_input;
-    canvas.Draw(&session, input_enabled);
+    canvas.Draw(&session, input_enabled, interaction_enabled);
     ImGui::End();
     ImGui::Render();
   }
@@ -229,6 +229,27 @@ TEST_CASE_METHOD(CanvasFixture, "Mode overlays do not consume drawing clicks",
   Frame(second, true);
   Frame(second);
   CHECK(session.State().At("objects").Items().size() == before + 1);
+}
+TEST_CASE_METHOD(CanvasFixture,
+                 "Document preview suppresses case input and drawing cursors "
+                 "but permits zoom",
+                 "[app][preview][cursor]") {
+  testing::ExecuteChecked(&session, "ctx:set_mode('draw')");
+  const auto before = session.State();
+  const auto history = session.GetHistory().Count();
+  Frame({}, false, false, true, false, false);
+  const auto pointer = Screen({0, 0});
+  Frame(pointer, true, false, true, false, false);
+  Frame(pointer, false, false, true, false, false);
+  CHECK_FALSE(canvas.CrosshairVisible());
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_Arrow);
+  ImGui::GetIO().AddMouseWheelEvent(0, 1);
+  Frame(pointer, false, false, true, false, false);
+  CHECK(session.view.zoom > 1);
+  CHECK(session.State() == before);
+  CHECK(session.GetHistory().Count() == history);
+  Frame(pointer);
+  CHECK(canvas.CrosshairVisible());
 }
 }  // namespace
 }  // namespace drawer

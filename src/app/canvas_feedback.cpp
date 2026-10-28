@@ -8,8 +8,10 @@ namespace drawer {
 void DrawCanvasFeedback(const Session::ModeFeedback& feedback, Point origin,
                         Point size, bool panning) {
   const auto title = panning ? "临时平移 · " + feedback.title : feedback.title;
-  const auto hint =
-      panning ? std::string("松开中键 / 空格后恢复当前模式") : feedback.hint;
+  const auto hint = panning ? std::string(feedback.id == "preview"
+                                              ? "松开中键 / 空格后继续预览"
+                                              : "松开中键 / 空格后恢复当前模式")
+                            : feedback.hint;
   const float wrap = std::max(1.f, std::min(420.f, float(size.x) - 44));
   const auto title_size =
       ImGui::CalcTextSize(title.c_str(), nullptr, false, wrap);

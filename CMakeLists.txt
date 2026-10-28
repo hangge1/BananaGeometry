@@ -50,7 +50,9 @@ target_link_libraries(drawer_platform PUBLIC drawer_core PRIVATE comdlg32 shell3
 add_library(drawer_render STATIC src/render/canvas_renderer.cpp src/render/text_metrics.cpp)
 target_link_libraries(drawer_render PUBLIC drawer_core imgui)
 add_library(drawer_app STATIC src/app/application.cpp src/app/canvas_view.cpp src/app/lua_ui.cpp
-    src/app/workspace_paths.cpp src/app/case_library.cpp src/app/canvas_feedback.cpp)
+    src/app/workspace_paths.cpp src/app/case_library.cpp src/app/canvas_feedback.cpp src/app/working_document.cpp
+    src/app/application_documents.cpp src/app/application_menu.cpp src/app/application_tree.cpp
+    src/app/application_inspector.cpp src/app/application_frame.cpp)
 target_link_libraries(drawer_app PUBLIC drawer_runtime PRIVATE drawer_platform drawer_render)
 add_executable(drawer WIN32 src/main.cpp)
 target_link_libraries(drawer PRIVATE drawer_app imgui d3d11 dxgi shell32)

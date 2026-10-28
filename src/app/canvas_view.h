@@ -9,7 +9,9 @@ class Session;
 // Borrows the session only during Draw; owns no document or undo state.
 class CanvasView {
  public:
-  void Draw(Session* session, bool input_enabled);
+  // Preview allows view navigation but suppresses case events and mode UI.
+  void Draw(Session* session, bool input_enabled,
+            bool interaction_enabled = true);
   Point MouseWorld() const { return mouse_world_; }
   bool CrosshairVisible() const { return crosshair_visible_; }
 

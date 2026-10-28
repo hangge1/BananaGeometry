@@ -23,5 +23,12 @@ try {
     if ($result.ExitCode -eq 0 -or -not (Test-Path -LiteralPath $directoryLog)) { throw 'Invalid explicit case directory was not rejected' }
     $diagnostic = Get-Content -LiteralPath $directoryLog -Raw -Encoding UTF8
     if ($diagnostic -notmatch 'Case directory does not exist:' -or -not $diagnostic.Contains($missing)) { throw 'Invalid case directory failed for an unexpected reason' }
+    $documentLog = Join-Path $context.ArtifactDirectory 'logs/rejected-document-native.log'
+    $invalidDocument = Join-Path $context.TemporaryDirectory 'invalid-document.json'
+    [System.IO.File]::WriteAllText($invalidDocument, '{"format":"drawer","format_version":999}')
+    $result = Invoke-ValidationCommand $context 'rejected-document' $Executable @('--smoke-test', '--document', $invalidDocument, '--error-log', $documentLog) -TimeoutSeconds 30 -AllowFailure
+    if ($result.ExitCode -eq 0 -or -not (Test-Path -LiteralPath $documentLog)) { throw 'Invalid document was not rejected with diagnostics' }
+    $diagnostic = Get-Content -LiteralPath $documentLog -Raw -Encoding UTF8
+    if ($diagnostic -notmatch 'Unsupported workspace format') { throw 'Invalid document failed for an unexpected reason' }
     $status = 'passed'
 } finally { Complete-ValidationContext $context $status }

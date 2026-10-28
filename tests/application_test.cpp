@@ -57,6 +57,8 @@ struct ApplicationFixture {
     io.ConfigInputTrickleEventQueue = false;
     io.Fonts->AddFontDefault();
     REQUIRE(io.Fonts->Build());
+    REQUIRE(application.SelectInstance(
+        application.ActiveDocument()->active_instance));
     Frame();
   }
   void Frame(Application* target = nullptr) {
@@ -142,6 +144,7 @@ TEST_CASE_METHOD(ApplicationFixture,
   const auto runtime = directory.Path() / "out/Drawer";
   PrepareApplication(runtime);
   Application running(runtime, directory.Path() / "cases");
+  REQUIRE(running.SelectInstance(running.ActiveDocument()->active_instance));
   Rename();
   Frame(&running);
   Reload(&running);

@@ -27,15 +27,23 @@ Preferences ReadPreferences(const std::filesystem::path& path) {
   auto result = std::filesystem::u8path(directory);
   if (!result.empty() && !result.is_absolute())
     throw std::runtime_error("Remembered case directory must be absolute");
-  return {std::move(result)};
+  auto layout = value.At("layout");
+  if (layout.IsNull()) layout = Value::Object{};
+  if (!layout.IsObject())
+    throw std::runtime_error("Invalid layout preferences");
+  return {std::move(result), std::move(layout)};
 }
 void WritePreferences(const std::filesystem::path& path,
                       const Preferences& preferences) {
   auto directory = preferences.case_directory;
   if (!directory.empty())
     directory = std::filesystem::absolute(directory).lexically_normal();
-  const auto text = ToJson(
-      Value::Object{{"version", 1}, {"case_directory", directory.u8string()}});
+  if (!preferences.layout.IsObject())
+    throw std::runtime_error("Invalid layout preferences");
+  const auto text =
+      ToJson(Value::Object{{"version", 1},
+                           {"case_directory", directory.u8string()},
+                           {"layout", preferences.layout}});
   if (text.size() > 64 * 1024)
     throw std::runtime_error("Preferences exceed 64 KiB");
   std::filesystem::create_directories(path.parent_path());

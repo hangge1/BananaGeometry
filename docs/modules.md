@@ -23,6 +23,10 @@
 
 `app/workspace_paths.*` 按显式参数、记忆、内置目录选择路径；`app/case_library.*` 扫描并校验用例；`Application` 管理画布来源与重载。`DesktopServices` 可替换目录选择、编辑与记忆操作；`platform/desktop_actions.*` 实现 Windows 选择器和编辑动作，`platform/preferences.*` 管理偏好校验与原子保存。
 
+`core/workspace_document.*` 只处理版本 2 容器与版本 1 导入，`platform/document_io.*` 负责文件读写。`app/working_document.*` 拥有管理历史及共享运行实例，不依赖 ImGui；结构历史共享 VM，不能回退几何编辑。`runtime/session_objects.cpp` 提供受保护的选择、属性和边界查询，不拼接 Lua 源码。
+
+`Application` 拆为 `application.cpp`（来源/实例编排）、`application_documents.cpp`（加载/保存/确认/重试）、`application_menu.cpp`、`application_tree.cpp`、`application_inspector.cpp` 和 `application_frame.cpp`（布局/帧调度）。树命令在帧末执行，控件回调仅在调用期间借用。`DesktopServices` 的布局回调与目录回调共用本机偏好，互不覆盖。
+
 公共头文件声明必要契约；`runtime/detail/` 是私有实现，其他模块不得包含。新接口必须说明坐标、所有权、失效与错误规则。各会话独立拥有数据和 Lua 状态；只有桌面入口持有窗口回调所需的图形资源。
 
 ## Lua 模块
@@ -40,6 +44,7 @@
 | `modes.lua` | 模式元数据、切换取消、动态反馈和通知；通过公开对象与绘制接口查询状态 |
 | `drawing.lua` | 固定/自由落点、完成、取消和构造预览；通过公开对象 API 绘制 |
 | `ui.lua` | 控件请求和参数编辑事务 |
+| `inspector.lua` | 树对象选择、通用属性事务、对象边界与扩展回调；通过公开对象/手柄接口协作 |
 
 `drawer.*` 为 SDK 保留模块名；用例的 `require('helper')` 从自身目录加载。`ctx.state` 属于文档，`ctx.temp` 属于临时交互；回滚、撤销与恢复可能替换状态表，不保留旧引用。
 

@@ -12,7 +12,8 @@
 #include "runtime/session.h"
 
 namespace drawer {
-void CanvasView::Draw(Session* session, bool input_enabled) {
+void CanvasView::Draw(Session* session, bool input_enabled,
+                      bool interaction_enabled) {
   crosshair_visible_ = false;
   session->SetTextMeasurer(MeasureCanvasText);
   const auto origin = ImGui::GetCursorScreenPos();
@@ -52,7 +53,7 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
                                  {"alt", io.KeyAlt},
                                  {"button", button}});
   };
-  if (input) {
+  if (input && interaction_enabled) {
     if (hovered && !pan && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
       send("down", "", 1);
     if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -87,14 +88,23 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
         if (ImGui::IsKeyPressed(key, arrow)) send("key", name.c_str());
         if (ImGui::IsKeyReleased(key)) send("key_up", name.c_str());
       }
-    if (ImGui::IsKeyPressed(ImGuiKey_Home))
-      FitView(&session->view, session->State(), {size.x, size.y});
   }
+  if (input && ImGui::IsKeyPressed(ImGuiKey_Home))
+    FitView(&session->view, session->State(), {size.x, size.y});
   session->Draw(session->view.zoom);
   RenderCanvas(session->view, session->DrawItems(), origin, size);
-  const auto feedback = session->GetModeFeedback();
+  const auto feedback =
+      interaction_enabled
+          ? session->GetModeFeedback()
+          : Session::ModeFeedback{"preview", "文档预览 · 未选择交互实例",
+                                  "在管理树中选择实例或对象，开始绘制或调整"};
   DrawCanvasFeedback(feedback, {origin.x, origin.y}, {size.x, size.y}, panning);
   if (input && (hovered || session->Editing())) {
+    if (!interaction_enabled) {
+      ImGui::SetMouseCursor(panning ? ImGuiMouseCursor_ResizeAll
+                                    : ImGuiMouseCursor_Arrow);
+      return;
+    }
     const auto hint = session->GetPointerHint();
     if (panning || hint == Session::PointerHint::kMove ||
         feedback.cursor == "move")

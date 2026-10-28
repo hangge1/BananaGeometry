@@ -37,6 +37,23 @@ TEST_CASE("Broken preferences are rejected without rewriting the file",
     CHECK(std::string((std::istreambuf_iterator<char>(input)), {}) == source);
   }
 }
+TEST_CASE("Panel preferences coexist with directory settings and older files",
+          "[preferences]") {
+  testing::TestDirectory directory;
+  const auto path = directory.Path() / "preferences.json";
+  testing::WriteScript(path, "{\"version\":1,\"case_directory\":\"\"}");
+  CHECK(ReadPreferences(path).layout.IsObject());
+  Preferences value;
+  value.case_directory = directory.Path();
+  value.layout = Value::Object{{"tree", false}, {"tree_width", 300}};
+  WritePreferences(path, value);
+  auto restored = ReadPreferences(path);
+  CHECK(restored.case_directory == value.case_directory);
+  CHECK(restored.layout == value.layout);
+  restored.case_directory.clear();
+  WritePreferences(path, restored);
+  CHECK(ReadPreferences(path).layout == value.layout);
+}
 TEST_CASE("A failed preferences replacement retains the previous settings",
           "[preferences]") {
   testing::TestDirectory directory;

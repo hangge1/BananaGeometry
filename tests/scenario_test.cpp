@@ -3,6 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "support/session_fixture.h"
+#include "app/application.h"
 
 namespace drawer {
 TEST_CASE(
@@ -15,6 +16,17 @@ TEST_CASE(
   const auto manifest = ParseJson(source);
   for (const auto& scene : manifest.At("scenes").Items()) {
     CAPTURE(scene.At("id").String());
+    if (scene.At("document").IsBool() && scene.At("document").Bool()) {
+      Application app(root);
+      REQUIRE(app.OpenDocument(root / "tests/scenarios" /
+                               scene.At("fixture").String()));
+      CHECK(app.ActiveDocument()->Instances().size() == 3);
+      CHECK_FALSE(app.Active());
+      REQUIRE(app.Preview());
+      CHECK(app.Preview()->Draw(1));
+      CHECK_FALSE(app.ActiveDocument()->Find(3)->runtime->session);
+      continue;
+    }
     bool found = false;
     for (const auto& entry : DiscoverCases(root / "cases")) {
       Session session(root / "sdk/drawer.lua", entry);

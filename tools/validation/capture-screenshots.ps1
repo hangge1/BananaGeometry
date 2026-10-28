@@ -19,11 +19,15 @@ try {
     Add-Type -AssemblyName System.Drawing
     $results = @()
     foreach ($entry in $scenes) {
-        if ($entry.id -notmatch '^[a-z0-9]+(-[a-z0-9]+)*$' -or $entry.fixture -notmatch '^[a-z0-9-]+\.lua$') { throw 'Invalid scene identifier or fixture path' }
+        $isDocument = $entry.PSObject.Properties['document'] -and $entry.document -eq $true
+        $fixturePattern = if ($isDocument) { '^[a-z0-9-]+\.json$' } else { '^[a-z0-9-]+\.lua$' }
+        if ($entry.id -notmatch '^[a-z0-9]+(-[a-z0-9]+)*$' -or $entry.fixture -notmatch $fixturePattern) { throw 'Invalid scene identifier or fixture path' }
         $fixture = Join-Path $root "tests/scenarios/$($entry.fixture)"
         $bitmapPath = Join-Path $scratch "$($entry.id).bmp"
         $errorLog = Join-Path $context.ArtifactDirectory "logs/$($entry.id)-native.log"
-        $arguments = @('--smoke-test', '--case-id', $entry.case_id, '--fixture', $fixture, '--screenshot', $bitmapPath, '--error-log', $errorLog)
+        $arguments = @('--smoke-test', '--screenshot', $bitmapPath, '--error-log', $errorLog)
+        if ($isDocument) { $arguments += @('--document', $fixture) }
+        else { $arguments += @('--case-id', $entry.case_id, '--fixture', $fixture) }
         if ($Workspace) { $arguments += @('--workspace', $Workspace) }
         if ($CaseDirectory) { $arguments += @('--cases-dir', $CaseDirectory) }
         if ($entry.PSObject.Properties['pointer']) {

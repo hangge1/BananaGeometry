@@ -144,6 +144,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     bool smoke = false;
     std::filesystem::path screenshot;
     std::filesystem::path fixture;
+    std::filesystem::path document;
     std::filesystem::path workspace;
     std::filesystem::path case_directory;
     std::string case_id = "drawer.gallery";
@@ -169,6 +170,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         case_id = std::filesystem::path(argv[++i]).u8string();
       if (std::wstring(argv[i]) == L"--fixture" && i + 1 < argc)
         fixture = argv[++i];
+      if (std::wstring(argv[i]) == L"--document") {
+        if (i + 1 >= argc || std::wstring(argv[i + 1]).empty())
+          throw std::runtime_error("--document requires a file path");
+        document = argv[++i];
+      }
       if (std::wstring(argv[i]) == L"--error-log" && i + 1 < argc)
         error_log = argv[++i];
       if (std::wstring(argv[i]) == L"--workspace") {
@@ -194,6 +200,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     }
     if (!smoke && !fixture.empty())
       throw std::runtime_error("--fixture requires --smoke-test");
+    if (!document.empty() && !fixture.empty())
+      throw std::runtime_error("Use either --document or --fixture");
     ImGui_ImplWin32_EnableDpiAwareness();
     WNDCLASSEXW type{sizeof(type),
                      CS_CLASSDC,
@@ -275,10 +283,22 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
       } catch (const std::exception& error) {
         preferences_error = "本机目录设置不可用：" + std::string(error.what());
       }
-      desktop.remember_directory = [preferences_path](const auto& directory) {
+      auto remembered = std::make_shared<drawer::Preferences>(preferences);
+      desktop.load_layout = [remembered] { return remembered->layout; };
+      desktop.save_layout = [preferences_path, remembered](const auto& layout) {
+        auto next = *remembered;
+        next.layout = layout;
+        drawer::WritePreferences(preferences_path, next);
+        *remembered = std::move(next);
+      };
+      desktop.remember_directory = [preferences_path,
+                                    remembered](const auto& directory) {
         if (preferences_path.empty())
           throw std::runtime_error("Local preferences path is unavailable");
-        drawer::WritePreferences(preferences_path, {directory});
+        auto next = *remembered;
+        next.case_directory = directory;
+        drawer::WritePreferences(preferences_path, next);
+        *remembered = std::move(next);
       };
     }
     drawer::Application app(
@@ -288,7 +308,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
         std::move(desktop));
     if (!preferences_error.empty()) app.ReportError(preferences_error);
     g_application = &app;
-    if (smoke && !app.SmokeCheck(case_id, fixture))
+    if (!document.empty() && !app.OpenDocument(document))
+      throw std::runtime_error(app.Error());
+    if (smoke && document.empty() && !app.SmokeCheck(case_id, fixture))
       throw std::runtime_error("Case smoke check failed");
     ShowWindow(window, SW_SHOWDEFAULT);
     UpdateWindow(window);

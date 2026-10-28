@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "scenes": [
+    {"id": "workspace-multi", "document": true, "fixture": "workspace-multi.json"},
     {"id": "polygon-selection", "case_id": "drawer.triangle", "fixture": "polygon-selection.lua"},
     {"id": "bezier-degree-5", "case_id": "drawer.bezier", "fixture": "bezier-degree-5.lua"},
     {"id": "bezier-closed", "case_id": "drawer.bezier", "fixture": "bezier-closed.lua"},

@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <functional>
+#include "core/value.h"
 
 namespace drawer {
 // UI-thread operations. Empty picker/editor use native implementations;
@@ -13,6 +14,8 @@ struct DesktopServices {
   std::function<void(const std::filesystem::path&)> edit_script;
   // Empty path records "use the current executable's bundled cases".
   std::function<void(const std::filesystem::path&)> remember_directory;
+  std::function<Value()> load_layout;
+  std::function<void(const Value&)> save_layout;
 };
 }  // namespace drawer
 

@@ -46,7 +46,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/validation/check-porta
 
 ```text
 tools/validation/                         维护的验证代码
-tests/scenarios/manifest.json             稳定场景编号、用例标识、Lua 夹具
+tests/scenarios/manifest.json             稳定场景编号、Lua/JSON 夹具
 artifacts/validation/<UTC时间-随机后缀>/    运行证据，不进入 Git
   run.json / source-files.json            源码提交、脏状态、文件哈希、环境摘要
   task-*.json / logs/                     每步命令、退出码、时间及诊断
@@ -65,6 +65,8 @@ build/                                   CMake 构建树、依赖和工具缓存
 manifest 场景可选 `pointer: {x: 0.8, y: 0.5}`，由截图入口映射为 `--smoke-pointer x y`，按客户区归一化坐标注入测试指针，取值 0–1。此选项仅用于 smoke 模式；宿主继续忽略真实输入，因此绘制十字的截图不依赖用户鼠标位置。
 
 新增截图只需添加 Lua 场景及 manifest 条目，使用公开 SDK，不修改发布用例。宿主测试入口支持 `--smoke-test --case-id <id> --fixture <Lua> --screenshot <BMP> --error-log <日志>`；夹具受现有指令、大小限制和回滚约束。重放期间不接收现场鼠标键盘输入，避免操作干扰已构造场景。
+
+多实例场景 `workspace-multi` 使用版本 2 JSON 固定文档；manifest 标记 `document: true`，截图入口改用 `--document <JSON>`，与 Lua `--fixture` 互斥。该场景包含多边形、贝塞尔及缺失插件实例，Catch2 同时验证可用实例与不可用数据保留。独立程序也支持 `--document`；不允许文档指定可执行脚本路径。新增场景仍放 `tests/scenarios/`，不能写一次性构造脚本到构建树。
 
 主入口验证构建、测试、检查器故障路径和截图生成；图像记录为“已捕获”，视觉正确性由人工或 AI 复核。源码副本检查覆盖无 `build/` 目录及含空格路径的脚本定位；完整编译由主入口承担。CI 调用同一入口并上传整个运行证据目录，工作流失败时另行上传 `.tmp/validation/` 的输入和夹具。
 

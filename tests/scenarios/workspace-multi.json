@@ -1,0 +1,49 @@
+{
+  "format": "drawer",
+  "format_version": 2,
+  "name": "多实例交互演示",
+  "instances": [
+    {
+      "id": 1,
+      "name": "多边形练习",
+      "data": {
+        "format": "drawer", "format_version": 1,
+        "case_id": "drawer.triangle", "case_version": 1,
+        "view": {"x": 0, "y": 0, "zoom": 1},
+        "state": {
+          "next_id": 2, "params": {},
+          "objects": [
+            {"id": 1, "kind": "polygon", "display_name": "可调整的五边形", "fill": true,
+             "points": [{"x": 0, "y": 160}, {"x": 160, "y": 50}, {"x": 100, "y": -140}, {"x": -100, "y": -140}, {"x": -160, "y": 50}]}
+          ]
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "曲线实验",
+      "data": {
+        "format": "drawer", "format_version": 1,
+        "case_id": "drawer.bezier", "case_version": 1,
+        "view": {"x": 0, "y": 0, "zoom": 1},
+        "state": {
+          "next_id": 2, "params": {},
+          "objects": [
+            {"id": 1, "kind": "bezier", "display_name": "开放曲线",
+             "points": [{"x": -140, "y": -60}, {"x": -60, "y": 180}, {"x": 80, "y": -150}, {"x": 160, "y": 80}]}
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "待安装的自定义插件",
+      "data": {
+        "format": "drawer", "format_version": 1,
+        "case_id": "example.unavailable", "case_version": 1,
+        "view": {"x": 0, "y": 0, "zoom": 1},
+        "state": {"next_id": 1, "params": {"retained": "原始数据保留"}, "objects": []}
+      }
+    }
+  ]
+}
