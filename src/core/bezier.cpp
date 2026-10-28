@@ -1,6 +1,8 @@
 #include "core/bezier.h"
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace drawer {
@@ -44,6 +46,33 @@ void Subdivide(const std::vector<Point>& controls, double tolerance, int depth,
   Subdivide(right, tolerance, depth + 1, result);
 }
 }  // namespace
+
+void ValidateBezierJoin(const std::vector<Point>& controls, bool closed,
+                        bool smooth) {
+  ValidateControls(controls);
+  const auto start = controls.front();
+  const auto end = controls.back();
+  if (closed && (controls.size() < 4 || start.x != end.x || start.y != end.y))
+    throw std::runtime_error(
+        "Closed Bezier requires degree 3..32 and identical endpoints");
+  if (!smooth) return;
+  if (!closed || controls.size() < 5)
+    throw std::runtime_error("Smooth Bezier requires closure and degree 4..32");
+  const auto first = controls[1];
+  const auto last = controls[controls.size() - 2];
+  if (start.x == first.x && start.y == first.y)
+    throw std::runtime_error("Smooth Bezier requires a nonzero seam tangent");
+  auto mirrored = [](double anchor, double a, double b) {
+    const double scale =
+        std::max({1., std::abs(anchor), std::abs(a), std::abs(b)});
+    const double tolerance =
+        1e-9 + 8 * std::numeric_limits<double>::epsilon() * scale;
+    return std::abs(b - (2 * anchor - a)) <= tolerance;
+  };
+  if (!mirrored(start.x, first.x, last.x) ||
+      !mirrored(start.y, first.y, last.y))
+    throw std::runtime_error("Smooth Bezier requires mirrored seam tangents");
+}
 
 Point BezierPoint(const std::vector<Point>& controls, double parameter) {
   ValidateControls(controls);

@@ -49,10 +49,10 @@ $luaAllowed = @{
     geometry = @()
     state = @()
     bezier = @('geometry')
-    bezier_ui = @()
+    bezier_ui = @('bezier')
     objects = @('geometry', 'bezier')
     interaction = @()
-    drawing = @()
+    drawing = @('bezier')
     ui = @()
     modes = @()
 }

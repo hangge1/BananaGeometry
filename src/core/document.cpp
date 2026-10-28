@@ -58,15 +58,16 @@ void ValidateState(const Value& state) {
       throw std::runtime_error("Invalid point count for " + kind);
     if (kind == "bezier") {
       const auto& closed = shape.At("closed");
+      const auto& smooth = shape.At("smooth");
       if (!closed.IsNull() && !closed.IsBool())
         throw std::runtime_error("Bezier closed must be a boolean");
-      if (closed.IsBool() && closed.Bool()) {
-        if (count < 4 ||
-            points.Items().front().At("x") != points.Items().back().At("x") ||
-            points.Items().front().At("y") != points.Items().back().At("y"))
-          throw std::runtime_error(
-              "Closed Bezier requires degree 3..32 and identical endpoints");
-      }
+      if (!smooth.IsNull() && !smooth.IsBool())
+        throw std::runtime_error("Bezier smooth must be a boolean");
+      std::vector<Point> controls;
+      for (const auto& point : points.Items())
+        controls.push_back({point.At("x").Number(), point.At("y").Number()});
+      ValidateBezierJoin(controls, closed.IsBool() && closed.Bool(),
+                         smooth.IsBool() && smooth.Bool());
     }
   }
   auto next = state.At("next_id").NumberOr(0);

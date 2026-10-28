@@ -57,7 +57,7 @@ local function update_drag(ctx, event)
   drag.started = true
   if drag.handle then
     local position = { x = drag.anchor.x + delta.x, y = drag.anchor.y + delta.y }
-    ctx:move_handle(object, drag.handle, position)
+    ctx:move_handle(object, drag.handle, position, drag.source)
   else
     if event.shift then
       if math.abs(delta.x) >= math.abs(delta.y) then
@@ -155,6 +155,9 @@ function M.attach(ctx)
         end
         if object.closed then
           self:line(handles[#handles], handles[1])
+        end
+        if object.smooth then
+          self:line(handles[2], handles[#handles], { 0.3, 0.9, 0.8, 1 }, 2)
         end
       end
       for i, p in ipairs(handles) do

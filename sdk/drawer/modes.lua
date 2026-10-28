@@ -59,8 +59,8 @@ function M.attach(ctx, host)
           title = title
             .. string.format(
               ' · %d 阶%s',
-              spec.closed and spec.count or spec.count - 1,
-              spec.closed and '闭合' or '开口'
+              spec.control_count - 1,
+              spec.closed and (spec.smooth and '平滑闭合' or '闭合') or '开口'
             )
         end
       end
@@ -86,8 +86,12 @@ function M.attach(ctx, host)
           or ' · 未选择对象'
         )
       if selected and selected.kind == 'bezier' and selected.closed then
-        title = title .. ' · 已闭合'
-        hint = hint or '拖接点移动首尾，拖其他控制点调整；拖主体平移'
+        title = title .. (selected.smooth and ' · 平滑闭合' or ' · 已闭合')
+        hint = hint
+          or (
+            selected.smooth and '拖切向点镜像联动，拖接点平移首尾与切向'
+            or '拖接点移动首尾，拖其他控制点调整；拖主体平移'
+          )
       end
       hint = hint
         or (

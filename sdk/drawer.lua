@@ -11,6 +11,7 @@
 ---@field width? number Stroke width in screen pixels.
 ---@field fill? boolean
 ---@field closed? boolean Bezier endpoints are linked; requires degree 3..32.
+---@field smooth? boolean Closed Bezier has mirrored seam tangents; degree 4..32.
 ---@field text? string UTF-8 content for text objects.
 
 ---@class DrawerTextBounds

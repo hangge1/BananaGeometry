@@ -63,12 +63,13 @@ function M.attach(ctx, host)
     return tostring(index)
   end
   --- Moves a handle within the caller's edit; custom types retain their override.
-  function ctx:move_handle(object, index, position)
+  ---@param source? DrawerObject Immutable baseline for linked Bezier handle previews.
+  function ctx:move_handle(object, index, position, source)
     local custom = self.types[object.kind]
     if custom and custom.move_handle then
       custom.move_handle(self, object, index, position)
     elseif object.kind == 'bezier' then
-      bezier.move_handle(object, index, position)
+      return bezier.move_handle(object, index, position, source or self.copy(object))
     else
       object.points[index] = self.copy(position)
     end
@@ -92,6 +93,9 @@ function M.attach(ctx, host)
     end
     for i, point in ipairs(source.points) do
       object.points[i] = { x = point.x + delta.x, y = point.y + delta.y }
+    end
+    if object.kind == 'bezier' then
+      bezier.sync_tangent(object)
     end
   end
   function ctx:emit(shape)

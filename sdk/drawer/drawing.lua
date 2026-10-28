@@ -1,4 +1,5 @@
 -- Owns unfinished construction, completion and previews; uses public object APIs.
+local bezier = require('drawer.bezier')
 local M = {}
 local max_points = 256
 
@@ -26,7 +27,7 @@ function M.attach(ctx)
     end
     local controls = self.copy(points)
     if spec.closed then
-      controls[#controls + 1] = self.copy(controls[1])
+      bezier.close_controls(controls, spec.smooth)
     end
     self:edit('创建对象', function()
       self:add(spec.kind, controls, spec.style)
@@ -37,7 +38,8 @@ function M.attach(ctx)
 
   --- Fixed count: completes automatically; count=0: polygon/polyline, Enter/right click.
   --- Closed Bezier collects count-1 clicks and appends the start as its last control.
-  --- Changing kind/count/closure cancels unfinished construction without touching history.
+  --- Smooth closure collects count-2 clicks, also generating the mirrored tangent.
+  --- Changing construction constraints cancels unfinished geometry without history.
   ---@param kind string
   ---@param count integer 0..256; Bezier requires 2..33.
   ---@param event DrawerEvent
@@ -53,16 +55,30 @@ function M.attach(ctx)
     )
     assert(kind ~= 'bezier' or (count >= 2 and count <= 33), 'Bezier requires 2..33 control points')
     local closed = kind == 'bezier' and style and style.closed == true or false
+    local smooth = kind == 'bezier' and style and style.smooth == true or false
     assert(not closed or count >= 4, 'Closed Bezier requires degree 3..32')
-    local clicks = closed and count - 1 or count
+    assert(not smooth or (closed and count >= 5), 'Smooth Bezier requires closed degree 4..32')
+    local clicks = count - (closed and 1 or 0) - (smooth and 1 or 0)
     local previous = self.temp.drawing
     if
-      previous and (previous.kind ~= kind or previous.count ~= clicks or previous.closed ~= closed)
+      previous
+      and (
+        previous.kind ~= kind
+        or previous.count ~= clicks
+        or previous.closed ~= closed
+        or previous.smooth ~= smooth
+      )
     then
       self:reset_drawing()
     end
-    self.temp.drawing =
-      { kind = kind, count = clicks, closed = closed, style = self.copy(style or {}) }
+    self.temp.drawing = {
+      kind = kind,
+      count = clicks,
+      control_count = count,
+      closed = closed,
+      smooth = smooth,
+      style = self.copy(style or {}),
+    }
     if event.type == 'key' and event.key == 'escape' then
       self:reset_drawing()
       return
@@ -84,6 +100,15 @@ function M.attach(ctx)
       return
     end
     self.temp.pending = self.temp.pending or self.array()
+    if
+      smooth
+      and #self.temp.pending == 1
+      and event.x == self.temp.pending[1].x
+      and event.y == self.temp.pending[1].y
+    then
+      self:notify('切向控制点需要离开起点，请重新落第二点')
+      return
+    end
     table.insert(self.temp.pending, { x = event.x, y = event.y })
     if (clicks > 0 and #self.temp.pending == clicks) or #self.temp.pending == max_points then
       self:finish_drawing()
@@ -102,9 +127,9 @@ function M.attach(ctx)
     if #points >= 2 then
       local preview = self.copy(spec.style)
       if spec.closed and #points >= 3 then
-        points[#points + 1] = self.copy(points[1])
+        bezier.close_controls(points, spec.smooth)
       elseif spec.closed then
-        preview.closed = false
+        preview.closed, preview.smooth = false, false
       end
       preview.kind, preview.points = spec.kind, points
       preview.color, preview.fill, preview.width = { 0.3, 0.8, 0.8, 0.8 }, false, 1.5
