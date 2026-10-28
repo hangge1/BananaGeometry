@@ -42,7 +42,7 @@ add_library(drawer_core STATIC src/core/value.cpp src/core/geometry.cpp src/core
 target_include_directories(drawer_core PUBLIC src)
 target_link_libraries(drawer_core PUBLIC drawer_options)
 add_library(drawer_runtime STATIC src/runtime/session.cpp
-    src/runtime/session_bindings.cpp src/runtime/detail/lua_support.cpp)
+    src/runtime/session_bindings.cpp src/runtime/session_feedback.cpp src/runtime/detail/lua_support.cpp)
 target_link_libraries(drawer_runtime PUBLIC drawer_core PRIVATE lua)
 add_library(drawer_platform STATIC src/platform/document_io.cpp src/platform/file_dialog.cpp
     src/platform/desktop_actions.cpp src/platform/preferences.cpp)
@@ -50,7 +50,7 @@ target_link_libraries(drawer_platform PUBLIC drawer_core PRIVATE comdlg32 shell3
 add_library(drawer_render STATIC src/render/canvas_renderer.cpp src/render/text_metrics.cpp)
 target_link_libraries(drawer_render PUBLIC drawer_core imgui)
 add_library(drawer_app STATIC src/app/application.cpp src/app/canvas_view.cpp src/app/lua_ui.cpp
-    src/app/workspace_paths.cpp src/app/case_library.cpp)
+    src/app/workspace_paths.cpp src/app/case_library.cpp src/app/canvas_feedback.cpp)
 target_link_libraries(drawer_app PUBLIC drawer_runtime PRIVATE drawer_platform drawer_render)
 add_executable(drawer WIN32 src/main.cpp)
 target_link_libraries(drawer PRIVATE drawer_app imgui d3d11 dxgi shell32)

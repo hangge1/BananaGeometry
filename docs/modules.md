@@ -17,6 +17,8 @@
 
 `render/text_metrics.*` 测量当前渲染字体，`CanvasView` 通过 `Session::SetTextMeasurer` 注入像素尺寸回调；Lua 对象模块将尺寸换算为世界坐标边界。运行时不包含字体或界面 API，选择覆盖层不写入文档。
 
+`runtime/session_feedback.cpp` 在 Lua 预算内获取通用模式信息并提供单调时间；`app/canvas_feedback.*` 绘制非交互模式标签和软件十字。反馈由 `ctx.mode` 和 SDK 状态派生，不另存一份界面模式，也不进入文档历史。
+
 交互模块通过 `Session::GetPointerHint` 提供语义提示，由 `CanvasView` 映射光标；运行时不持有界面状态。`Session::ExecuteFile` 负责可信验证夹具的受限执行，`Application::SmokeCheck` 负责用例选择，桌面入口仅处理参数与图像捕获。
 
 `app/workspace_paths.*` 按显式参数、记忆、内置目录选择路径；`app/case_library.*` 扫描并校验用例；`Application` 管理画布来源与重载。`DesktopServices` 可替换目录选择、编辑与记忆操作；`platform/desktop_actions.*` 实现 Windows 选择器和编辑动作，`platform/preferences.*` 管理偏好校验与原子保存。
@@ -32,7 +34,8 @@
 | `geometry.lua` | 纯计算，不读取宿主或上下文 |
 | `state.lua` | 数据复制、数组、编辑事务和清空 |
 | `objects.lua` | 对象、绘图、命中与类型注册；不读取交互临时状态 |
-| `interaction.lua` | 模式、选择、控制点调整、整体平移和选择反馈 |
+| `interaction.lua` | 选择、控制点调整、整体平移和选择反馈 |
+| `modes.lua` | 模式元数据、切换取消、动态反馈和通知；通过公开对象与绘制接口查询状态 |
 | `drawing.lua` | 固定/自由落点、完成、取消和构造预览；通过公开对象 API 绘制 |
 | `ui.lua` | 控件请求和参数编辑事务 |
 

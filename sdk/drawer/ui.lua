@@ -11,6 +11,7 @@ function M.attach(ctx, host)
   ctx.ui = {}
   for _, operation in ipairs({
     'button',
+    'mode_button',
     'text',
     'separator',
     'same_line',
@@ -56,12 +57,12 @@ function M.attach(ctx, host)
     return value
   end
   function ctx:mode_buttons()
-    if self.ui.button('绘制模式') then
+    if self.ui.mode_button('绘制', self.mode == 'draw') and self.mode ~= 'draw' then
       self:finish_parameter()
       self:set_mode('draw')
     end
     self.ui.same_line()
-    if self.ui.button('调整模式') then
+    if self.ui.mode_button('调整', self.mode == 'edit') and self.mode ~= 'edit' then
       self:finish_parameter()
       self:set_mode('edit')
     end

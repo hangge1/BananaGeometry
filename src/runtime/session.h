@@ -24,6 +24,10 @@ class Session {
                                                       const Value::Array&)>;
   using TextMeasurer = std::function<Point(const std::string&)>;
   enum class PointerHint { kNone, kHandle, kMove };
+  struct ModeFeedback {
+    std::string id, title, hint, notice;
+    std::string cursor = "arrow";
+  };
   Session(const std::filesystem::path& sdk, const std::filesystem::path& entry);
   ~Session();
   Session(const Session&) = delete;
@@ -35,6 +39,9 @@ class Session {
   bool Draw(double zoom);
   // Transient SDK feedback; has no effect on document data or history.
   PointerHint GetPointerHint() const;
+  // Queries SDK feedback with the normal Lua budget; no UI dependency or
+  // history.
+  ModeFeedback GetModeFeedback();
   // Supplies the active renderer's text width/height in screen pixels.
   // Called on the session thread; unset headless sessions report zero extent.
   void SetTextMeasurer(TextMeasurer measurer) {
@@ -79,6 +86,7 @@ class Session {
   static int CancelEdit(lua_State* state);
   static int Emit(lua_State* state);
   static int Ui(lua_State* state);
+  static int Clock(lua_State* state);
   static int Array(lua_State* state);
   static int MeasureText(lua_State* state);
   static int BezierPolyline(lua_State* state);

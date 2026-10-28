@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-截至 2026-10-27，已实现首版 Windows 宿主、Lua SDK、三个示例用例和 CTest 测试。阶段验证与限制见[开发日志](docs/development-log.md)。
+截至 2026-10-28，已实现 Windows 宿主、Lua SDK、三个示例用例、模式反馈和 CTest 测试。阶段验证与限制见[开发日志](docs/development-log.md)。
 
 ## 文档入口
 
@@ -20,6 +20,7 @@
 | [模块与目录](docs/modules.md) | 实际文件组织、模块边界、依赖方向与状态所有权 |
 | [SDK 使用说明](docs/sdk.md) | 新增 Lua 用例、图形、控件、事务与输入 API |
 | [用例目录与编辑](docs/case-directories.md) | 统一加载、记住目录、编辑当前脚本 |
+| [交互模式反馈](docs/interaction-mode-proposal.md) | 模式选中状态、画布标识、动态提示和十字光标 |
 | [测试与验收](docs/testing.md) | 自动化结果、测量与尚需人工验收的项目 |
 | [本轮人工验收](docs/manual-acceptance.md) | 多边形、可变阶数贝塞尔及交互式 Gallery 的验收步骤 |
 | [验证工具与产物](docs/validation.md) | 可复用验证入口、场景、运行报告和临时文件管理 |
@@ -66,6 +67,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 - 多边形设置 3–256 个顶点，或自由落点后 Enter / 右键完成；贝塞尔设置 1–32 阶，落下阶数加一个控制点。
 - Gallery 从空画布选择图元交互绘制，可设置点数、阶数、文字、大小和样式；“插入演示图元”提供参考场景。
 - 调整模式单击图形后显示金色高亮和控制点；Gallery 的文字可在整个文字区域内按下拖动，Esc 取消。
+- 模式按钮标记“当前”，画布左上角显示模式和下一步提示；绘制时画布内显示十字，临时平移显示移动光标。重复点击当前模式不取消操作。
 - 拖图形主体整体平移，拖控制点调整形状；Alt 强制平移，Shift 锁定方向，方向键微移。
 - 中键或空格+左键平移，滚轮缩放，Home 适应内容，Esc 取消，Delete 删除。
 - Ctrl+N/O/S/Z/Y：新建、加载、保存、撤销、重做；Ctrl+Shift+S 另存为。
@@ -77,7 +79,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration R
 
 ## 自动化验证
 
-Catch2 + CTest 包含 89 个值、历史、视图、Lua、文档、千级对象、脚本重载、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
+Catch2 + CTest 包含 98 个值、历史、视图、Lua、文档、千级对象、模式、偏好及画布输入行为用例，以及一个原生窗口检查。格式与边界检查见[代码规范](docs/coding-style.md)。
 
 需要性能报告时单独启用 Google Benchmark；它不链接到应用：
 
@@ -85,7 +87,7 @@ Catch2 + CTest 包含 89 个值、历史、视图、Lua、文档、千级对象�
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Configuration Release -Benchmarks
 ```
 
-该命令执行 91 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
+该命令执行 100 项 CTest 检查，并测量 100/1000 个对象下的文档、历史、Lua 提取和命中。JUnit 与性能 JSON 按运行编号保存到 `artifacts/validation/`。完整工程验证可运行 `tools/validate.ps1 -Configuration Release -Benchmarks -Screenshots -Package`，详见[验证工具](docs/validation.md)。
 
 可复现窗口检查与截图：
 

@@ -50,7 +50,8 @@ struct CanvasFixture {
   }
 
   void Frame(Point pointer = {-1000, -1000}, bool pressed = false,
-             bool shift = false) {
+             bool shift = false, bool input_enabled = true,
+             bool text_input = false) {
     auto& io = ImGui::GetIO();
     io.AddMousePosEvent(static_cast<float>(pointer.x),
                         static_cast<float>(pointer.y));
@@ -67,7 +68,8 @@ struct CanvasFixture {
     origin = {cursor.x, cursor.y};
     size = {available.x, available.y};
     text_size = MeasureCanvasText("二维图形 SDK##id\nNext");
-    canvas.Draw(&session, true);
+    io.WantTextInput = text_input;
+    canvas.Draw(&session, input_enabled);
     ImGui::End();
     ImGui::Render();
   }
@@ -167,6 +169,66 @@ TEST_CASE_METHOD(CanvasFixture,
             .Number() == before + 1);
   ImGui::GetIO().AddKeyEvent(ImGuiKey_RightArrow, false);
   Frame(pointer);
+}
+TEST_CASE_METHOD(
+    CanvasFixture,
+    "Drawing crosshairs follow the pointer only inside an enabled canvas",
+    "[app][mode][cursor]") {
+  testing::ExecuteChecked(&session, "ctx:set_mode('draw')");
+  Frame();
+  const auto pointer = Screen({0, 0});
+  Frame(pointer);
+  CHECK(canvas.CrosshairVisible());
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_None);
+  CHECK(ImGui::GetForegroundDrawList()->VtxBuffer.Size > 0);
+  Frame(pointer, false, false, false);
+  CHECK_FALSE(canvas.CrosshairVisible());
+  Frame(pointer, false, false, true, true);
+  CHECK_FALSE(canvas.CrosshairVisible());
+  Frame();
+  CHECK_FALSE(canvas.CrosshairVisible());
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_Arrow);
+  testing::ExecuteChecked(&session,
+                          "ctx:register_mode('inspect',{label='Inspect',cursor="
+                          "'hand'});ctx:set_mode('inspect')");
+  Frame(pointer);
+  CHECK_FALSE(canvas.CrosshairVisible());
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_Hand);
+}
+TEST_CASE_METHOD(
+    CanvasFixture,
+    "Temporary pan cursors restore the drawing mode and honor input focus",
+    "[app][mode][cursor]") {
+  testing::ExecuteChecked(&session, "ctx:set_mode('draw')");
+  Frame();
+  const auto pointer = Screen({0, 0});
+  ImGui::GetIO().AddKeyEvent(ImGuiKey_Space, true);
+  Frame(pointer);
+  CHECK_FALSE(canvas.CrosshairVisible());
+  CHECK(ImGui::GetMouseCursor() == ImGuiMouseCursor_ResizeAll);
+  CHECK(session.GetModeFeedback().id == "draw");
+  const auto center = session.view.center;
+  Frame({pointer.x + 30, pointer.y + 20}, true, false, false);
+  CHECK(session.view.center.x == center.x);
+  CHECK(session.view.center.y == center.y);
+  ImGui::GetIO().AddKeyEvent(ImGuiKey_Space, false);
+  Frame(pointer);
+  CHECK(canvas.CrosshairVisible());
+}
+TEST_CASE_METHOD(CanvasFixture, "Mode overlays do not consume drawing clicks",
+                 "[app][mode]") {
+  testing::ExecuteChecked(&session, "ctx:set_mode('draw')");
+  const auto before = session.State().At("objects").Items().size();
+  Frame();
+  const Point first{origin.x + 25, origin.y + 25};
+  const Point second{origin.x + 100, origin.y + 25};
+  Frame(first);
+  Frame(first, true);
+  Frame(first);
+  Frame(second);
+  Frame(second, true);
+  Frame(second);
+  CHECK(session.State().At("objects").Items().size() == before + 1);
 }
 }  // namespace
 }  // namespace drawer

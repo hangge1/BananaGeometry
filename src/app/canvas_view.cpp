@@ -6,12 +6,14 @@
 #include <string>
 
 #include "imgui.h"
+#include "app/canvas_feedback.h"
 #include "render/canvas_renderer.h"
 #include "render/text_metrics.h"
 #include "runtime/session.h"
 
 namespace drawer {
 void CanvasView::Draw(Session* session, bool input_enabled) {
+  crosshair_visible_ = false;
   session->SetTextMeasurer(MeasureCanvasText);
   const auto origin = ImGui::GetCursorScreenPos();
   auto size = ImGui::GetContentRegionAvail();
@@ -27,9 +29,12 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
   bool pan = ImGui::IsMouseDown(ImGuiMouseButton_Middle) ||
              (ImGui::IsKeyDown(ImGuiKey_Space) &&
               ImGui::IsMouseDown(ImGuiMouseButton_Left));
-  if ((hovered || ImGui::IsItemActive()) && pan && !session->Editing())
+  const bool input = !io.WantTextInput && input_enabled;
+  const bool panning = input && !session->Editing() &&
+                       (pan || (hovered && ImGui::IsKeyDown(ImGuiKey_Space)));
+  if (input && (hovered || ImGui::IsItemActive()) && pan && !session->Editing())
     session->view.Pan({io.MouseDelta.x, io.MouseDelta.y});
-  if (hovered && io.MouseWheel && !session->Editing())
+  if (input && hovered && io.MouseWheel && !session->Editing())
     session->view.ZoomAt(mouse, {size.x, size.y},
                          std::pow(1.18, io.MouseWheel));
   auto world = session->view.ToWorld(mouse, {size.x, size.y});
@@ -47,7 +52,6 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
                                  {"alt", io.KeyAlt},
                                  {"button", button}});
   };
-  bool input = !io.WantTextInput && input_enabled;
   if (input) {
     if (hovered && !pan && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
       send("down", "", 1);
@@ -88,12 +92,22 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
   }
   session->Draw(session->view.zoom);
   RenderCanvas(session->view, session->DrawItems(), origin, size);
+  const auto feedback = session->GetModeFeedback();
+  DrawCanvasFeedback(feedback, {origin.x, origin.y}, {size.x, size.y}, panning);
   if (input && (hovered || session->Editing())) {
     const auto hint = session->GetPointerHint();
-    if (pan || hint == Session::PointerHint::kMove)
+    if (panning || hint == Session::PointerHint::kMove ||
+        feedback.cursor == "move")
       ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeAll);
-    else if (hint == Session::PointerHint::kHandle)
+    else if (hint == Session::PointerHint::kHandle || feedback.cursor == "hand")
       ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    else if (feedback.cursor == "crosshair" && hovered) {
+      crosshair_visible_ = true;
+      ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+      DrawCanvasCrosshair({io.MousePos.x, io.MousePos.y}, {origin.x, origin.y},
+                          {size.x, size.y});
+    } else
+      ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
     if (hovered && !ImGui::IsMouseDown(ImGuiMouseButton_Left) &&
         ImGui::IsItemHovered(ImGuiHoveredFlags_ForTooltip)) {
       if (hint == Session::PointerHint::kMove)
@@ -101,11 +115,6 @@ void CanvasView::Draw(Session* session, bool input_enabled) {
       else if (hint == Session::PointerHint::kHandle)
         ImGui::SetTooltip("拖动控制点：修改形状\nAlt+拖动：整体平移");
     }
-  }
-  if (session->State().At("objects").Items().empty()) {
-    ImGui::GetWindowDrawList()->AddText({origin.x + 20, origin.y + 18},
-                                        IM_COL32(140, 160, 185, 255),
-                                        "从左侧选择用例，或在画布中开始绘制。");
   }
 }
 }  // namespace drawer

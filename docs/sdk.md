@@ -97,6 +97,12 @@ end)
 
 ## 模式、输入与编辑辅助
 
+`ctx:mode_buttons()` 提供互斥模式按钮，当前项显示“当前”和选中边框。重复点击当前项不会清除点列或选择；画布标签显示实际模式、进度及下一步操作。切换取消预览时提示保留约 2.5 秒，Esc 不改变模式。
+
+`ctx:register_mode(id, {label='测量模式', hint='单击两个点', cursor='crosshair'})` 声明自定义展示信息，不改变用例事件逻辑。光标可选 `arrow`、`crosshair`、`move`、`hand`。未注册模式显示原始标识；`ctx:mode_feedback()` 返回当前 `id/title/hint/cursor/notice`，不写入文档。SDK 模式状态以 `ctx.mode` 为唯一来源。
+
+十字仅在可输入且鼠标位于画布时显示，移到控件或进入文字编辑/模态操作时恢复普通指针。临时平移不切换模式。直接调用 `ctx:set_mode()` 仍保留原先取消操作、清理临时状态的契约，和点击已激活按钮的无操作行为不同。
+
 `ctx:set_mode(name)` 取消未完成操作并清理临时状态。`ctx:draw_event(kind,count,event,style)` 收集固定数量的点击，完成后创建对象并继续绘制；`count=0` 为自由多边形/折线，Enter、右键或 `ctx:finish_drawing()` 完成，至少需要 3/2 个点。上限 256 点自动完成，贝塞尔固定点数为 2–33。
 
 `ctx:drawing_count()` 返回已落点数量；`ctx:reset_drawing()` 清除未完成构造，保留其他临时状态。切换种类或点数也会清除未完成点列，Esc 取消。`ctx:render()` 显示临时图元预览及控制点；`ctx:draw_object(object)` 可复用标准或自定义对象的绘制，无需加入文档。

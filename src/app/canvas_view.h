@@ -11,9 +11,11 @@ class CanvasView {
  public:
   void Draw(Session* session, bool input_enabled);
   Point MouseWorld() const { return mouse_world_; }
+  bool CrosshairVisible() const { return crosshair_visible_; }
 
  private:
   Point mouse_world_;
+  bool crosshair_visible_ = false;
 };
 }  // namespace drawer
 

@@ -63,7 +63,8 @@ int Session::Ui(lua_State* state) {
   if (self->ui_)
     results = self->ui_(operation, arguments);
   else
-    results = {operation == "button"  ? Value(false)
+    results = {(operation == "button" || operation == "mode_button")
+                   ? Value(false)
                : arguments.size() > 1 ? arguments[1]
                                       : Value(),
                false, false};

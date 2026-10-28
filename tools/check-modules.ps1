@@ -52,6 +52,7 @@ $luaAllowed = @{
     interaction = @('geometry')
     drawing = @()
     ui = @()
+    modes = @()
 }
 foreach ($name in $luaAllowed.Keys) {
     $path = Join-Path $repositoryRoot "sdk/drawer/$name.lua"

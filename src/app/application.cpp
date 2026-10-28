@@ -250,8 +250,7 @@ void Application::Controls(Session* session) {
   ImGui::TextWrapped("重做：%s", session->GetHistory().RedoLabel().c_str());
   ImGui::Spacing();
   ImGui::TextWrapped(
-      "调整模式：拖图形整体平移，拖控制点调整\nAlt+拖动：强制整体移动\nShift+"
-      "拖动：水平/垂直约束\n方向键：微移，Shift 加速\n中键拖动 / "
+      "中键拖动 / "
       "空格+"
       "左键：平移\n滚轮：以鼠标为中心缩放\nHome：适应内容\nEsc：取消当前操作\nD"
       "elete：删除选中对"

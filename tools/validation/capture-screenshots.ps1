@@ -26,6 +26,12 @@ try {
         $arguments = @('--smoke-test', '--case-id', $entry.case_id, '--fixture', $fixture, '--screenshot', $bitmapPath, '--error-log', $errorLog)
         if ($Workspace) { $arguments += @('--workspace', $Workspace) }
         if ($CaseDirectory) { $arguments += @('--cases-dir', $CaseDirectory) }
+        if ($entry.PSObject.Properties['pointer']) {
+            foreach ($coordinate in @($entry.pointer.x, $entry.pointer.y)) {
+                if ($coordinate -lt 0 -or $coordinate -gt 1) { throw 'Invalid scene pointer fraction' }
+            }
+            $arguments += @('--smoke-pointer', ([double]$entry.pointer.x).ToString([Globalization.CultureInfo]::InvariantCulture), ([double]$entry.pointer.y).ToString([Globalization.CultureInfo]::InvariantCulture))
+        }
         $result = Invoke-ValidationCommand $context $entry.id $Executable $arguments -TimeoutSeconds 30 -AllowFailure
         if ($result.ExitCode -ne 0) {
             $details = if (Test-Path -LiteralPath $errorLog) { Get-Content -LiteralPath $errorLog -Raw -Encoding UTF8 } else { 'No native diagnostic was produced' }

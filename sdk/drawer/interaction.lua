@@ -84,11 +84,6 @@ local function update_drag(ctx, event)
 end
 
 function M.attach(ctx)
-  function ctx:set_mode(mode)
-    self:cancel_edit()
-    self.temp = {}
-    self.mode = mode
-  end
   --- Handle drags reshape; body drags translate. Alt forces translation, Shift locks an axis.
   --- Every gesture snapshots its origin, preserving shape, grab offset and undo boundaries.
   ---@param event DrawerEvent

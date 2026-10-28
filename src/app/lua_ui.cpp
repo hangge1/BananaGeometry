@@ -40,6 +40,29 @@ std::vector<Value> DrawLuaWidget(const std::string& op,
     changed = ImGui::Button(label.c_str());
     return {changed, changed, changed};
   }
+  if (op == "mode_button") {
+    const bool selected = value.IsBool() && value.Bool();
+    const auto text = label + (selected ? "·当前" : "");
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, selected ? 2.f : 1.f);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(
+                                               selected ? ImGuiCol_ButtonActive
+                                                        : ImGuiCol_Button));
+    ImGui::PushStyleColor(ImGuiCol_Border, selected
+                                               ? ImVec4(.4f, .75f, 1, 1)
+                                               : ImVec4(.3f, .35f, .4f, 1));
+    const float width = ImGui::CalcTextSize((label + "·当前").c_str()).x +
+                        2 * ImGui::GetStyle().FramePadding.x;
+    if (ImGui::GetContentRegionAvail().x < width &&
+        ImGui::GetCursorPosX() > ImGui::GetStyle().WindowPadding.x + 1)
+      ImGui::NewLine();
+    const auto id = text + "###mode_button_" + label;
+    const bool clicked = ImGui::Button(
+        id.c_str(),
+        {std::max(1.f, std::min(width, ImGui::GetContentRegionAvail().x)), 0});
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar();
+    return {clicked && !selected, clicked && !selected, clicked && !selected};
+  }
   if (op == "text")
     ImGui::TextWrapped("%s", label.c_str());
   else if (op == "same_line")

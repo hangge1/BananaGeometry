@@ -45,6 +45,7 @@ local objects = require('drawer.objects')
 local interaction = require('drawer.interaction')
 local drawing = require('drawer.drawing')
 local ui = require('drawer.ui')
+local modes = require('drawer.modes')
 
 -- The host injects this table once per isolated Lua VM.
 ---@diagnostic disable-next-line: undefined-global
@@ -64,6 +65,7 @@ function M.new()
   objects.attach(ctx, host)
   interaction.attach(ctx)
   drawing.attach(ctx)
+  modes.attach(ctx, host)
   ui.attach(ctx, host)
   function ctx:render()
     self:render_objects()

@@ -5,6 +5,7 @@
 #include <wrl/client.h>
 
 #include <filesystem>
+#include <cmath>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -146,7 +147,21 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     std::filesystem::path workspace;
     std::filesystem::path case_directory;
     std::string case_id = "drawer.gallery";
+    bool has_smoke_pointer = false;
+    float smoke_pointer_x = 0, smoke_pointer_y = 0;
     for (int i = 1; i < argc; ++i) {
+      if (std::wstring(argv[i]) == L"--smoke-pointer") {
+        if (i + 2 >= argc)
+          throw std::runtime_error("--smoke-pointer requires x y fractions");
+        smoke_pointer_x = std::stof(argv[++i]);
+        smoke_pointer_y = std::stof(argv[++i]);
+        if (!std::isfinite(smoke_pointer_x) ||
+            !std::isfinite(smoke_pointer_y) || smoke_pointer_x < 0 ||
+            smoke_pointer_x > 1 || smoke_pointer_y < 0 || smoke_pointer_y > 1)
+          throw std::runtime_error(
+              "Smoke pointer fractions must be within 0..1");
+        has_smoke_pointer = true;
+      }
       if (std::wstring(argv[i]) == L"--smoke-test") smoke = true;
       if (std::wstring(argv[i]) == L"--screenshot" && i + 1 < argc)
         screenshot = argv[++i];
@@ -170,6 +185,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
       }
     }
     LocalFree(argv);
+    if (has_smoke_pointer && !smoke)
+      throw std::runtime_error("--smoke-pointer requires --smoke-test");
     if (!workspace.empty()) {
       if (!case_directory.empty())
         throw std::runtime_error("Use either --cases-dir or --workspace");
@@ -294,6 +311,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
       }
       ImGui_ImplDX11_NewFrame();
       ImGui_ImplWin32_NewFrame();
+      if (smoke && has_smoke_pointer) {
+        // Inject deterministic test input while continuing to ignore live
+        // input.
+        io.SetAppAcceptingEvents(true);
+        io.AddMousePosEvent(io.DisplaySize.x * smoke_pointer_x,
+                            io.DisplaySize.y * smoke_pointer_y);
+        io.SetAppAcceptingEvents(false);
+      }
       ImGui::NewFrame();
       app.Frame();
       ImGui::Render();

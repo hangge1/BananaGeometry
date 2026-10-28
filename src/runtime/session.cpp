@@ -71,6 +71,7 @@ Session::Session(const std::filesystem::path& sdk,
         {"cancel_edit", Safe<CancelEdit>},
         {"emit", Safe<Emit>},
         {"ui", Safe<Ui>},
+        {"clock", Safe<Clock>},
         {"array", Safe<Array>},
         {"measure_text", Safe<MeasureText>},
         {"bezier_polyline", Safe<BezierPolyline>}};
